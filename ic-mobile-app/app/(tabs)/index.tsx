@@ -17,7 +17,7 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
+        <ThemedText type="title">Hi From Business Today!</ThemedText>
         <HelloWave />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
@@ -73,3 +73,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
 });
+
+
+// things to add:
+// frontpage
+// a hero section with the header that maybe fades in a cool way
+// a log in button
+// nav bar with the pages (just that they can't click on any pages or, if they do, they will be directed to auth)
+
+// C 1. front page
+// L 2. schedule
+  // once logged in, default is schedule (nav bar with other options)
+  // can switch between pages on the BOTTOM
+// C 3. qr code/attendance
+// L 4. goose chase (?)
+
