@@ -1,29 +1,71 @@
-# Welcome to your Expo app 👋
+# IC Mobile App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native mobile application built with Expo.
 
-## Get started
+## 🚀 Getting Started
 
-1. Install dependencies
+### Prerequisites
 
+- [Node.js](https://nodejs.org/) (LTS version recommended)
+- [Expo Go](https://expo.dev/client) app on your iOS or Android device
+- [Git](https://git-scm.com/)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/cindytong2/ic-mobile-app.git
+   cd ic-mobile-app
+   ```
+
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-2. Start the app
-
+3. **Start the development server**
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+### Running the App
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+After running `npx expo start`, you can run the app in several ways:
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **On your physical device**:
+  1. Install the Expo Go app on your iOS or Android device
+  2. Scan the QR code in the terminal with your phone's camera (iOS) or the Expo Go app (Android)
+
+- **On iOS Simulator** (macOS only):
+  - Press `i` in the terminal to open iOS simulator
+  - Requires Xcode to be installed
+
+- **On Android Emulator**:
+  - Press `a` in the terminal to open Android emulator
+  - Requires Android Studio to be installed
+
+## 🛠 Development
+
+- **Project Structure**:
+  - `/app` - Main application code with file-based routing
+  - `/components` - Reusable React components
+  - `/constants` - App-wide constants and configuration
+  - `/assets` - Images, fonts, and other static files
+
+- **Common Commands**:
+  ```bash
+  # Start the development server
+  npm start
+  
+  # Run on iOS simulator (macOS only)
+  npm run ios
+  
+  # Run on Android emulator
+  npm run android
+  
+  # Run on web
+  npm run web
+  ```
 
 ## Get a fresh project
 
