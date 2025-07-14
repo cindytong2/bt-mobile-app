@@ -4,13 +4,14 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
 
-export default function LoginScreen() {
+export default function SignUpScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleLogin = () => {
-    // Handle login logic here
-    console.log('Login attempt with:', { username, password });
+  const handleSignUp = () => {
+    // sign up logic here
+    console.log('Sign up attempt with:', { username, password });
   };
 
   return (
@@ -25,6 +26,14 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           <ThemedView style={styles.innerContainer}>
+            {/* Back Button */}
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <ThemedText style={styles.backButtonText}>← Go Back</ThemedText>
+            </TouchableOpacity>
+            
             {/* Logo */}
             <View style={styles.logoContainer}>
               <Image
@@ -34,19 +43,20 @@ export default function LoginScreen() {
               />
             </View>
             
-            {/* Login Form */}
+            {/* Sign Up Form */}
             <View style={styles.formContainer}>
-              <ThemedText style={styles.loginTitle}>Log In</ThemedText>
+              <ThemedText style={styles.loginTitle}>Create Account</ThemedText>
               
               <View style={styles.inputContainer}>
                 <ThemedText style={styles.inputLabel}>Username</ThemedText>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter your username"
+                  placeholder="Choose a username"
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  placeholderTextColor="#999"
                 />
               </View>
               
@@ -54,26 +64,40 @@ export default function LoginScreen() {
                 <ThemedText style={styles.inputLabel}>Password</ThemedText>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter your password"
+                  placeholder="Create a password"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
                   autoCapitalize="none"
+                  placeholderTextColor="#999"
+                />
+              </View>
+              
+              <View style={[styles.inputContainer, { marginTop: 10 }]}>
+                <ThemedText style={styles.inputLabel}>Confirm Password</ThemedText>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  placeholderTextColor="#999"
                 />
               </View>
               
               <TouchableOpacity 
                 style={styles.loginButton}
-                onPress={handleLogin}
+                onPress={handleSignUp}
                 activeOpacity={0.8}
               >
-                <ThemedText style={styles.loginButtonText}>Log In</ThemedText>
+                <ThemedText style={styles.loginButtonText}>Sign Up</ThemedText>
               </TouchableOpacity>
               
               <View style={styles.signupContainer}>
-                <ThemedText style={styles.signupText}>Don't have an account? </ThemedText>
-                <TouchableOpacity onPress={() => router.push('/(tabs)/signup')}>
-                  <ThemedText style={[styles.signupText, styles.signupLink]}>Sign up here</ThemedText>
+                <ThemedText style={styles.signupText}>Returning user? </ThemedText>
+                <TouchableOpacity onPress={() => router.back()}>
+                  <ThemedText style={[styles.signupText, styles.signupLink]}>Log in here</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
@@ -104,6 +128,17 @@ const styles = StyleSheet.create({
     maxWidth: 500,
     width: '100%',
     alignSelf: 'center',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 1,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: '#05688e',
+    fontWeight: '600',
   },
   logoContainer: {
     alignItems: 'center',
