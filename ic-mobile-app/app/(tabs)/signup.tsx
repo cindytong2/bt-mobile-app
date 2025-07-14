@@ -25,15 +25,7 @@ export default function SignUpScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <ThemedView style={styles.innerContainer}>
-            {/* Back Button */}
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <ThemedText style={styles.backButtonText}>← Go Back</ThemedText>
-            </TouchableOpacity>
-            
+          <ThemedView lightColor="transparent" darkColor="transparent" style={styles.innerContainer}>
             {/* Logo */}
             <View style={styles.logoContainer}>
               <Image

@@ -24,7 +24,7 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <ThemedView style={styles.innerContainer}>
+          <ThemedView lightColor="transparent" darkColor="transparent" style={styles.innerContainer}>
             {/* Logo */}
             <View style={styles.logoContainer}>
               <Image
@@ -47,6 +47,7 @@ export default function LoginScreen() {
                   onChangeText={setUsername}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  placeholderTextColor="#999"
                 />
               </View>
               
@@ -59,7 +60,8 @@ export default function LoginScreen() {
                   onChangeText={setPassword}
                   secureTextEntry
                   autoCapitalize="none"
-                />
+                  placeholderTextColor="#999"
+                  />
               </View>
               
               <TouchableOpacity 
