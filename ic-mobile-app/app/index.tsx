@@ -3,12 +3,14 @@ import { StyleSheet, View, TextInput, TouchableOpacity, Image, KeyboardAvoidingV
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
+// import { collection, addDoc } from "firebase/firestore";
+// import { db } from "../firebase";
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     // Navigate to the schedule page
     router.push('/schedule');
   };
