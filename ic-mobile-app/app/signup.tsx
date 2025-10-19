@@ -1,22 +1,27 @@
-import { useState, useLayoutEffect } from 'react';
+import React, { useLayoutEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { StyleSheet, View, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
+import { signInWithPopup } from "firebase/auth";
+import { auth, provider } from "../config/firebaseConfig";
 
 export default function SignUpScreen() {
   const navigation = useNavigation();
   useLayoutEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleSignUp = () => {
-    // Navigate to the schedule page
-    router.push('/schedule');
+  const handleSignIn = async () => {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      console.log("User:", result.user.email);
+      // Navigate to the schedule page after successful sign in
+      router.push('/schedule');
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
@@ -40,55 +45,16 @@ export default function SignUpScreen() {
               />
             </View>
             
-            {/* Sign Up Form */}
+            {/* Google Sign In Form */}
             <View style={styles.formContainer}>
-              <ThemedText style={styles.loginTitle}>Create Account</ThemedText>
-              
-              <View style={styles.inputContainer}>
-                <ThemedText style={styles.inputLabel}>Username</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Choose a username"
-                  value={username}
-                  onChangeText={setUsername}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  placeholderTextColor="#999"
-                />
-              </View>
-              
-              <View style={[styles.inputContainer, { marginTop: 10 }]}>
-                <ThemedText style={styles.inputLabel}>Password</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Create a password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  placeholderTextColor="#999"
-                />
-              </View>
-              
-              <View style={[styles.inputContainer, { marginTop: 10 }]}>
-                <ThemedText style={styles.inputLabel}>Confirm Password</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Confirm your password"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  placeholderTextColor="#999"
-                />
-              </View>
+              <ThemedText style={styles.loginTitle}>Sign Up with Google</ThemedText>
               
               <TouchableOpacity 
-                style={styles.loginButton}
-                onPress={handleSignUp}
+                style={styles.googleButton}
+                onPress={handleSignIn}
                 activeOpacity={0.8}
               >
-                <ThemedText style={styles.loginButtonText}>Sign Up</ThemedText>
+                <ThemedText style={styles.googleButtonText}>Sign in with Google</ThemedText>
               </TouchableOpacity>
               
               <View style={styles.signupContainer}>
@@ -162,26 +128,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#000000',
   },
-  inputContainer: {
-    marginBottom: 10,
-  },
-  inputLabel: {
-    marginBottom: 8,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  input: {
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    color: '#000000',
-  },
-  loginButton: {
-    backgroundColor: '#05688e',
+  googleButton: {
+    backgroundColor: '#4285f4',
     borderRadius: 10,
     padding: 16,
     alignItems: 'center',
@@ -192,7 +140,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-  loginButtonText: {
+  googleButtonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
