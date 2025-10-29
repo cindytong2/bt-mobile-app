@@ -53,12 +53,10 @@ export default function ScheduleScreen() {
             ]}
           >
             <View style={styles.timeContainer}>
-              key={idx}
               <Text style={[styles.timeText, { color: idx % 2 === 0 ? '#ffffff' : '#000000' }]}>{session.start}</Text>
               <Text style={[styles.timeText, { color: idx % 2 === 0 ? 'white' : 'black' }]}>{session.end}</Text>
             </View>
             <View style={styles.infoContainer}>
-              key={idx}
               <Text style={[styles.sessionTitle, { color: idx % 2 === 0 ? 'white' : 'black' }]}>{session.title}</Text>
               <Text style={[styles.sessionLocation, { color: idx % 2 === 0 ? 'white' : 'black' }]}>{session.location}</Text>
             </View>
