@@ -1,27 +1,15 @@
-import React, { useLayoutEffect } from 'react';
-import { useNavigation } from '@react-navigation/native';
 import { StyleSheet, View, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
-import { signInWithPopup } from "firebase/auth";
-import { auth, provider } from "../config/firebaseConfig";
+// import { signInWithPopup } from "firebase/auth";
+// import { auth, provider } from "../config/firebaseConfig";
 
 export default function SignUpScreen() {
-  const navigation = useNavigation();
-  useLayoutEffect(() => {
-    navigation.setOptions({ headerShown: false });
-  }, [navigation]);
-
-  const handleSignIn = async () => {
-    try {
-      const result = await signInWithPopup(auth, provider);
-      console.log("User:", result.user.email);
-      // Navigate to the schedule page after successful sign in
-      router.push('/schedule');
-    } catch (error) {
-      console.error(error);
-    }
+  const handleGoogleSignUp = async () => {
+    // TODO: Implement Google authentication
+    // Navigate to the schedule page
+    router.push('/schedule');
   };
 
   return (
@@ -45,24 +33,25 @@ export default function SignUpScreen() {
               />
             </View>
             
-            {/* Google Sign In Form */}
+            {/* Sign Up Form */}
             <View style={styles.formContainer}>
               <ThemedText style={styles.loginTitle}>Sign Up with Google</ThemedText>
               
               <TouchableOpacity 
                 style={styles.googleButton}
-                onPress={handleSignIn}
+                onPress={handleGoogleSignUp}
                 activeOpacity={0.8}
               >
-                <ThemedText style={styles.googleButtonText}>Sign in with Google</ThemedText>
+                <View style={styles.googleButtonContent}>
+                  <View style={styles.googleLogoContainer}>
+                    <View style={[styles.googleLogoPart, { backgroundColor: '#4285F4', borderTopLeftRadius: 10, borderBottomLeftRadius: 10 }]} />
+                    <View style={[styles.googleLogoPart, { backgroundColor: '#EA4335' }]} />
+                    <View style={[styles.googleLogoPart, { backgroundColor: '#FBBC05', borderTopRightRadius: 10 }]} />
+                    <View style={[styles.googleLogoPart, { backgroundColor: '#34A853', borderBottomRightRadius: 10 }]} />
+                  </View>
+                  <ThemedText style={styles.googleButtonText}>Sign up with Google</ThemedText>
+                </View>
               </TouchableOpacity>
-              
-              <View style={styles.signupContainer}>
-                <ThemedText style={styles.signupText}>Returning user? </ThemedText>
-                <TouchableOpacity onPress={() => router.back()}>
-                  <ThemedText style={[styles.signupText, styles.signupLink]}>Log in here</ThemedText>
-                </TouchableOpacity>
-              </View>
             </View>
           </ThemedView>
         </ScrollView>
@@ -92,17 +81,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 1,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#05688e',
-    fontWeight: '600',
-  },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 40,
@@ -129,34 +107,40 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   googleButton: {
-    backgroundColor: '#4285f4',
-    borderRadius: 10,
-    padding: 16,
+    backgroundColor: '#4285F4',
+    borderRadius: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    marginTop: 28,
+    marginTop: 8,
+    minHeight: 48,
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
     elevation: 3,
+  },
+  googleButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleLogoContainer: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  googleLogoPart: {
+    width: 10,
+    height: 10,
   },
   googleButtonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  signupContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  signupText: {
-    fontSize: 14,
-    color: '#4a4a4a',
-  },
-  signupLink: {
-    color: '#05688e',
-    fontWeight: '600',
+    fontWeight: '500',
+    letterSpacing: 0.25,
   },
 });

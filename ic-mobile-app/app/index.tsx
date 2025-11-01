@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { StyleSheet, View, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, SafeAreaView } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
@@ -7,10 +6,8 @@ import { router } from 'expo-router';
 // import { db } from "../firebase";
 
 export default function LoginScreen() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-
-  const handleLogin = async () => {
+  const handleGoogleSignIn = async () => {
+    // TODO: Implement Google authentication
     // Navigate to the schedule page
     router.push('/schedule');
   };
@@ -38,48 +35,23 @@ export default function LoginScreen() {
             
             {/* Login Form */}
             <View style={styles.formContainer}>
-              <ThemedText style={styles.loginTitle}>Log In</ThemedText>
-              
-              <View style={styles.inputContainer}>
-                <ThemedText style={styles.inputLabel}>Username</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your username"
-                  value={username}
-                  onChangeText={setUsername}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  placeholderTextColor="#999"
-                />
-              </View>
-              
-              <View style={[styles.inputContainer, { marginTop: 10 }]}>
-                <ThemedText style={styles.inputLabel}>Password</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  placeholderTextColor="#999"
-                  />
-              </View>
+              <ThemedText style={styles.loginTitle}>Sign In</ThemedText>
               
               <TouchableOpacity 
-                style={styles.loginButton}
-                onPress={handleLogin}
+                style={styles.googleButton}
+                onPress={handleGoogleSignIn}
                 activeOpacity={0.8}
               >
-                <ThemedText style={styles.loginButtonText}>Log In</ThemedText>
+                <View style={styles.googleButtonContent}>
+                  <View style={styles.googleLogoContainer}>
+                    <View style={[styles.googleLogoPart, { backgroundColor: '#4285F4', borderTopLeftRadius: 10, borderBottomLeftRadius: 10 }]} />
+                    <View style={[styles.googleLogoPart, { backgroundColor: '#EA4335' }]} />
+                    <View style={[styles.googleLogoPart, { backgroundColor: '#FBBC05', borderTopRightRadius: 10 }]} />
+                    <View style={[styles.googleLogoPart, { backgroundColor: '#34A853', borderBottomRightRadius: 10 }]} />
+                  </View>
+                  <ThemedText style={styles.googleButtonText}>Sign in with Google</ThemedText>
+                </View>
               </TouchableOpacity>
-              
-              <View style={styles.signupContainer}>
-                <ThemedText style={styles.signupText}>Don't have an account? </ThemedText>
-                <TouchableOpacity onPress={() => router.push('/signup')}>
-                  <ThemedText style={[styles.signupText, styles.signupLink]}>Sign up here</ThemedText>
-                </TouchableOpacity>
-              </View>
             </View>
           </ThemedView>
         </ScrollView>
@@ -134,53 +106,41 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#000000',
   },
-  inputContainer: {
-    marginBottom: 10,
-  },
-  inputLabel: {
-    marginBottom: 8,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  input: {
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    color: '#000000',
-  },
-  loginButton: {
-    backgroundColor: '#05688e',
-    borderRadius: 10,
-    padding: 16,
+  googleButton: {
+    backgroundColor: '#4285F4',
+    borderRadius: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    marginTop: 28,
+    marginTop: 8,
+    minHeight: 48,
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
     elevation: 3,
   },
-  loginButtonText: {
+  googleButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleLogoContainer: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  googleLogoPart: {
+    width: 10,
+    height: 10,
+  },
+  googleButtonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  signupContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  signupText: {
-    fontSize: 14,
-    color: '#4a4a4a',
-  },
-  signupLink: {
-    color: '#05688e',
-    fontWeight: '600',
+    fontWeight: '500',
+    letterSpacing: 0.25,
   },
 });

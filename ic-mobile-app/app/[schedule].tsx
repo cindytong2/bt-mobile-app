@@ -76,7 +76,7 @@ export default function ScheduleScreen() {
 
         // Replace hardcoded email later with authenticated user's email
         const currentUser = usersList.find(
-          (user) => user.email === "lp4566@princeton.edu"
+          (user) => user.email === "cindytsacc@gmail.com"
         );
 
         if (currentUser) {
