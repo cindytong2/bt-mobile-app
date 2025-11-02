@@ -1,15 +1,30 @@
-import { StyleSheet, View, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, View, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
-// import { signInWithPopup } from "firebase/auth";
-// import { auth, provider } from "../config/firebaseConfig";
+import { signInWithGoogle } from '@/utils/googleAuth';
 
 export default function SignUpScreen() {
+  const [loading, setLoading] = useState(false);
+
   const handleGoogleSignUp = async () => {
-    // TODO: Implement Google authentication
-    // Navigate to the schedule page
-    router.push('/schedule');
+    try {
+      setLoading(true);
+      const result = await signInWithGoogle();
+      
+      if (result.success && result.user) {
+        // Navigate to schedule page after successful authentication
+        router.push('/schedule');
+      } else {
+        Alert.alert('Authentication Failed', result.error || 'Please try again');
+      }
+    } catch (error: any) {
+      console.error('Sign up error:', error);
+      Alert.alert('Error', error.message || 'An error occurred during sign up');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,18 +53,25 @@ export default function SignUpScreen() {
               <ThemedText style={styles.loginTitle}>Sign Up with Google</ThemedText>
               
               <TouchableOpacity 
-                style={styles.googleButton}
+                style={[styles.googleButton, loading && styles.googleButtonDisabled]}
                 onPress={handleGoogleSignUp}
                 activeOpacity={0.8}
+                disabled={loading}
               >
                 <View style={styles.googleButtonContent}>
-                  <View style={styles.googleLogoContainer}>
-                    <View style={[styles.googleLogoPart, { backgroundColor: '#4285F4', borderTopLeftRadius: 10, borderBottomLeftRadius: 10 }]} />
-                    <View style={[styles.googleLogoPart, { backgroundColor: '#EA4335' }]} />
-                    <View style={[styles.googleLogoPart, { backgroundColor: '#FBBC05', borderTopRightRadius: 10 }]} />
-                    <View style={[styles.googleLogoPart, { backgroundColor: '#34A853', borderBottomRightRadius: 10 }]} />
-                  </View>
-                  <ThemedText style={styles.googleButtonText}>Sign up with Google</ThemedText>
+                  {loading ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <>
+                      <View style={styles.googleLogoContainer}>
+                        <View style={[styles.googleLogoPart, { backgroundColor: '#4285F4', borderTopLeftRadius: 10, borderBottomLeftRadius: 10 }]} />
+                        <View style={[styles.googleLogoPart, { backgroundColor: '#EA4335' }]} />
+                        <View style={[styles.googleLogoPart, { backgroundColor: '#FBBC05', borderTopRightRadius: 10 }]} />
+                        <View style={[styles.googleLogoPart, { backgroundColor: '#34A853', borderBottomRightRadius: 10 }]} />
+                      </View>
+                      <ThemedText style={styles.googleButtonText}>Sign up with Google</ThemedText>
+                    </>
+                  )}
                 </View>
               </TouchableOpacity>
             </View>
@@ -120,6 +142,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+  },
+  googleButtonDisabled: {
+    opacity: 0.6,
   },
   googleButtonContent: {
     flexDirection: 'row',

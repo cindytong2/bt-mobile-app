@@ -8,9 +8,10 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { db } from "../config/firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
+import { useAuth } from "@/contexts/AuthContext";
 
 type ICUser = {
   userId: string;
@@ -26,6 +27,8 @@ type ICUser = {
 };
 
 export default function ScheduleScreen() {
+  const { userEmail, loading: authLoading } = useAuth();
+  const router = useRouter();
   const days = ["Saturday", "Sunday", "Monday"];
   const [sessions, setSessions] = useState([
     {
@@ -56,12 +59,25 @@ export default function ScheduleScreen() {
   ]);
   const [users, setUsers] = useState<ICUser[]>([]);
   const [parentData, setParentData] = useState<ICUser | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !userEmail) {
+      router.replace('/');
+    }
+  }, [authLoading, userEmail, router]);
 
   // Fetch ic-users collection from Firestore
-  // Fetch ic-users collection from Firestore
   useEffect(() => {
+    if (!userEmail) {
+      setLoading(false);
+      return;
+    }
+
     const fetchUsers = async () => {
       try {
+        setLoading(true);
         const usersCollection = collection(db, "ic-users");
         const usersSnapshot = await getDocs(usersCollection);
 
@@ -74,24 +90,39 @@ export default function ScheduleScreen() {
         setUsers(usersList);
         console.log("Fetched users:", usersList);
 
-        // Replace hardcoded email later with authenticated user's email
+        // Find user by authenticated email
         const currentUser = usersList.find(
-          (user) => user.email === "cindytsacc@gmail.com"
+          (user) => user.email === userEmail
         );
 
         if (currentUser) {
           setParentData(currentUser);
           console.log("Set parentData:", currentUser);
         } else {
-          console.log("No matching user found for email");
+          console.log("No matching user found for email:", userEmail);
         }
       } catch (error) {
         console.error("Error fetching users:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchUsers();
-  }, []);
+  }, [userEmail]);
+
+  // Show loading or redirect if not authenticated
+  if (authLoading || loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#05688e" />
+      </View>
+    );
+  }
+
+  if (!userEmail) {
+    return null; // Will redirect to login
+  }
 
   return (
     <View style={styles.container}>
@@ -143,7 +174,7 @@ export default function ScheduleScreen() {
                 Session 1
               </Text>
               <Text style={[styles.sessionLocation, { color: "white" }]}>
-                {users[0].day1_session1}
+                {parentData?.day1_session1}
               </Text>
             </View>
           </View>
@@ -163,7 +194,7 @@ export default function ScheduleScreen() {
                 Session 2
               </Text>
               <Text style={[styles.sessionLocation, { color: "black" }]}>
-                {users[0].day1_session2}
+                {parentData?.day1_session2}
               </Text>
             </View>
           </View>
@@ -179,6 +210,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f7f4",
     paddingHorizontal: 20,
     paddingTop: 40,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     fontSize: 32,
