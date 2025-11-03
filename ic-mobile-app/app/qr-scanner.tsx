@@ -10,11 +10,36 @@ import {
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { Stack } from "expo-router";
+import { useAuth } from "@/contexts/AuthContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { recordScanToSheet } from "@/utils/googleSheets";
+
+const AUTH_EMAIL_KEY = '@auth_user_email';
 
 export default function QRScannerScreen() {
+  const { userEmail: contextUserEmail } = useAuth();
+  const [userEmail, setUserEmail] = useState<string | null>(contextUserEmail);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
+  const [recording, setRecording] = useState(false);
   const router = useRouter();
+
+  // Load email from AsyncStorage
+  useEffect(() => {
+    const loadEmail = async () => {
+      try {
+        const email = await AsyncStorage.getItem(AUTH_EMAIL_KEY);
+        if (email) {
+          setUserEmail(email);
+        } else if (contextUserEmail) {
+          setUserEmail(contextUserEmail);
+        }
+      } catch (error) {
+        console.error('Error loading email:', error);
+      }
+    };
+    loadEmail();
+  }, [contextUserEmail]);
 
   useEffect(() => {
     if (permission && !permission.granted && !permission.canAskAgain) {
@@ -26,7 +51,7 @@ export default function QRScannerScreen() {
     }
   }, [permission]);
 
-  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
+  const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
     if (scanned) return; // Prevent multiple scans
     
     setScanned(true);
@@ -36,38 +61,107 @@ export default function QRScannerScreen() {
       const parsedData = JSON.parse(data);
       console.log("Scanned QR Code:", parsedData);
       
-      Alert.alert(
-        "QR Code Scanned",
-        `Email: ${parsedData.email || 'N/A'}\nName: ${parsedData.name || 'N/A'}\nUser ID: ${parsedData.userId || 'N/A'}`,
-        [
-          {
-            text: "Scan Again",
-            onPress: () => setScanned(false),
-          },
-          {
-            text: "OK",
-            onPress: () => setScanned(false),
-          },
-        ]
-      );
+      const scannedName = parsedData.name || 'Unknown';
+      const scannedEmail = parsedData.email || 'N/A';
+      const scannedUserId = parsedData.userId || 'N/A';
+      
+      // Check if current user is businesstoday@gmail.com before recording
+      const currentUserEmail = userEmail?.toLowerCase();
+      if (currentUserEmail === 'businesstoday@gmail.com') {
+        // Record scan to Google Sheet
+        setRecording(true);
+        const success = await recordScanToSheet(scannedName);
+        setRecording(false);
+        
+        if (success) {
+          Alert.alert(
+            "QR Code Scanned ✓",
+            `Email: ${scannedEmail}\nName: ${scannedName}\nUser ID: ${scannedUserId}\n\n✅ Recorded to attendance sheet`,
+            [
+              {
+                text: "Scan Again",
+                onPress: () => setScanned(false),
+              },
+              {
+                text: "OK",
+                onPress: () => setScanned(false),
+              },
+            ]
+          );
+        } else {
+          Alert.alert(
+            "QR Code Scanned",
+            `Email: ${scannedEmail}\nName: ${scannedName}\nUser ID: ${scannedUserId}\n\n⚠️ Could not record to sheet`,
+            [
+              {
+                text: "Scan Again",
+                onPress: () => setScanned(false),
+              },
+              {
+                text: "OK",
+                onPress: () => setScanned(false),
+              },
+            ]
+          );
+        }
+      } else {
+        // Regular scan without recording
+        Alert.alert(
+          "QR Code Scanned",
+          `Email: ${scannedEmail}\nName: ${scannedName}\nUser ID: ${scannedUserId}`,
+          [
+            {
+              text: "Scan Again",
+              onPress: () => setScanned(false),
+            },
+            {
+              text: "OK",
+              onPress: () => setScanned(false),
+            },
+          ]
+        );
+      }
     } catch (error) {
       // If it's not JSON, just show the raw data
       console.log("Scanned QR Code (raw):", data);
       
-      Alert.alert(
-        "QR Code Scanned",
-        `Data: ${data}`,
-        [
-          {
-            text: "Scan Again",
-            onPress: () => setScanned(false),
-          },
-          {
-            text: "OK",
-            onPress: () => setScanned(false),
-          },
-        ]
-      );
+      // Still try to record if user is businesstoday@gmail.com
+      const currentUserEmail = userEmail?.toLowerCase();
+      if (currentUserEmail === 'businesstoday@gmail.com') {
+        setRecording(true);
+        const success = await recordScanToSheet(data); // Use raw data as name
+        setRecording(false);
+        
+        Alert.alert(
+          success ? "QR Code Scanned ✓" : "QR Code Scanned",
+          `Data: ${data}${success ? '\n\n✅ Recorded to attendance sheet' : '\n\n⚠️ Could not record to sheet'}`,
+          [
+            {
+              text: "Scan Again",
+              onPress: () => setScanned(false),
+            },
+            {
+              text: "OK",
+              onPress: () => setScanned(false),
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          "QR Code Scanned",
+          `Data: ${data}`,
+          [
+            {
+              text: "Scan Again",
+              onPress: () => setScanned(false),
+            },
+            {
+              text: "OK",
+              onPress: () => setScanned(false),
+            },
+          ]
+        );
+      }
     }
   };
 
@@ -108,6 +202,12 @@ export default function QRScannerScreen() {
       </View>
 
       <View style={styles.cameraContainer}>
+        {recording && (
+          <View style={styles.recordingIndicator}>
+            <ActivityIndicator size="small" color="#ffffff" />
+            <Text style={styles.recordingText}>Recording to sheet...</Text>
+          </View>
+        )}
         <CameraView
           style={styles.camera}
           facing="back"
@@ -215,6 +315,26 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  recordingIndicator: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: "rgba(5, 104, 142, 0.9)",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+  },
+  recordingText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 8,
   },
 });
 
