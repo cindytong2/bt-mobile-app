@@ -29,37 +29,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const loadPersistedEmail = async () => {
       try {
         const email = await AsyncStorage.getItem(AUTH_EMAIL_KEY);
+        console.log('📧 AuthContext: Loaded email from AsyncStorage:', email);
         if (email) {
           setUserEmail(email);
         }
       } catch (error) {
         console.error('Error loading persisted email:', error);
       }
+      setLoading(false);
     };
 
     loadPersistedEmail();
 
-    // Listen for auth state changes
+    // Listen for auth state changes (for Firebase auth only)
+    // Note: With email-only auth, Firebase auth might not have a user
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       
+      // Only override email from Firebase if we don't have one from AsyncStorage
+      // For email-only auth, we rely on AsyncStorage, not Firebase auth
       if (currentUser && currentUser.email) {
-        setUserEmail(currentUser.email);
         try {
-          await AsyncStorage.setItem(AUTH_EMAIL_KEY, currentUser.email);
+          const storedEmail = await AsyncStorage.getItem(AUTH_EMAIL_KEY);
+          // Only use Firebase email if there's no stored email, or if they match
+          if (!storedEmail || storedEmail === currentUser.email) {
+            setUserEmail(currentUser.email);
+            await AsyncStorage.setItem(AUTH_EMAIL_KEY, currentUser.email);
+          }
         } catch (error) {
           console.error('Error saving email:', error);
         }
-      } else {
-        setUserEmail(null);
-        try {
-          await AsyncStorage.removeItem(AUTH_EMAIL_KEY);
-        } catch (error) {
-          console.error('Error removing email:', error);
-        }
+      } else if (!currentUser) {
+        // Don't clear email if Firebase auth has no user - we're using email-only auth
+        // Only clear if explicitly logged out
+        console.log('📧 AuthContext: No Firebase user, but may have email from AsyncStorage');
       }
-      
-      setLoading(false);
     });
 
     return () => unsubscribe();

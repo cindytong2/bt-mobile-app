@@ -8,10 +8,14 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 import { Stack, useRouter } from "expo-router";
 import { db } from "../config/firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const AUTH_EMAIL_KEY = '@auth_user_email';
 
 type ICUser = {
   userId: string;
@@ -27,7 +31,8 @@ type ICUser = {
 };
 
 export default function ScheduleScreen() {
-  const { userEmail, loading: authLoading } = useAuth();
+  const { userEmail: contextUserEmail, loading: authLoading } = useAuth();
+  const [userEmail, setUserEmail] = useState<string | null>(contextUserEmail);
   const router = useRouter();
   const days = ["Saturday", "Sunday", "Monday"];
   const [sessions, setSessions] = useState([
@@ -61,6 +66,35 @@ export default function ScheduleScreen() {
   const [parentData, setParentData] = useState<ICUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Reload email from AsyncStorage when screen comes into focus
+  // This ensures we get the latest email after signing in
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadEmail = async () => {
+        try {
+          const email = await AsyncStorage.getItem(AUTH_EMAIL_KEY);
+          console.log('📧 Schedule: Loaded email from AsyncStorage on focus:', email);
+          if (email) {
+            setUserEmail(email);
+          } else {
+            setUserEmail(null);
+          }
+        } catch (error) {
+          console.error('Error loading email:', error);
+        }
+      };
+      loadEmail();
+    }, [])
+  );
+
+  // Also sync with context email
+  useEffect(() => {
+    if (contextUserEmail !== userEmail) {
+      console.log('📧 Schedule: Syncing email from context:', contextUserEmail);
+      setUserEmail(contextUserEmail);
+    }
+  }, [contextUserEmail]);
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !userEmail) {
@@ -72,8 +106,11 @@ export default function ScheduleScreen() {
   useEffect(() => {
     if (!userEmail) {
       setLoading(false);
+      console.log("📧 Schedule: No userEmail, skipping fetch");
       return;
     }
+
+    console.log("📧 Schedule: Fetching data for email:", userEmail);
 
     const fetchUsers = async () => {
       try {
@@ -88,18 +125,23 @@ export default function ScheduleScreen() {
         }));
 
         setUsers(usersList);
-        console.log("Fetched users:", usersList);
+        console.log("📧 Schedule: Fetched users:", usersList.length);
 
-        // Find user by authenticated email
+        // Find user by authenticated email - make sure we're matching correctly
         const currentUser = usersList.find(
-          (user) => user.email === userEmail
+          (user) => user.email?.toLowerCase() === userEmail.toLowerCase()
         );
+
+        console.log("📧 Schedule: Searching for email:", userEmail);
+        console.log("📧 Schedule: Found user:", currentUser ? currentUser.email : 'NOT FOUND');
 
         if (currentUser) {
           setParentData(currentUser);
-          console.log("Set parentData:", currentUser);
+          console.log("✅ Schedule: Set parentData for:", currentUser.email);
+          console.log("✅ Schedule: User data:", currentUser);
         } else {
-          console.log("No matching user found for email:", userEmail);
+          console.log("❌ Schedule: No matching user found for email:", userEmail);
+          console.log("📧 Schedule: Available emails:", usersList.map(u => u.email));
         }
       } catch (error) {
         console.error("Error fetching users:", error);

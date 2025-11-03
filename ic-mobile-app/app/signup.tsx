@@ -1,29 +1,54 @@
 import { useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator, TextInput } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
-import { signInWithGoogle } from '@/utils/googleAuth';
+import { signInWithEmail } from '@/utils/emailAuth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const AUTH_EMAIL_KEY = '@auth_user_email';
 
 export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  const handleGoogleSignUp = async () => {
+  const handleEmailSignUp = async () => {
+    if (!email.trim()) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    // Clear previous error
+    setError(null);
+
     try {
       setLoading(true);
-      const result = await signInWithGoogle();
+      const result = await signInWithEmail(email);
       
-      if (result.success && result.user) {
+      if (result.success && result.email) {
+        // Save email to AsyncStorage (matching what AuthContext expects)
+        await AsyncStorage.setItem(AUTH_EMAIL_KEY, result.email);
+        
         // Navigate to schedule page after successful authentication
         router.push('/schedule');
       } else {
-        Alert.alert('Authentication Failed', result.error || 'Please try again');
+        // Show inline error message
+        setError(result.error || 'Please enter a different email address');
       }
     } catch (error: any) {
       console.error('Sign up error:', error);
-      Alert.alert('Error', error.message || 'An error occurred during sign up');
+      setError(error.message || 'An error occurred during sign up');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Clear error when user starts typing
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (error) {
+      setError(null);
     }
   };
 
@@ -50,29 +75,37 @@ export default function SignUpScreen() {
             
             {/* Sign Up Form */}
             <View style={styles.formContainer}>
-              <ThemedText style={styles.loginTitle}>Sign Up with Google</ThemedText>
+              <ThemedText style={styles.loginTitle}>Sign Up</ThemedText>
+              
+              <View style={styles.inputContainer}>
+                <ThemedText style={styles.inputLabel}>Email Address</ThemedText>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  placeholderTextColor="#999"
+                  value={email}
+                  onChangeText={handleEmailChange}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  editable={!loading}
+                />
+                {error && (
+                  <ThemedText style={styles.errorText}>{error}</ThemedText>
+                )}
+              </View>
               
               <TouchableOpacity 
-                style={[styles.googleButton, loading && styles.googleButtonDisabled]}
-                onPress={handleGoogleSignUp}
+                style={[styles.signUpButton, loading && styles.signUpButtonDisabled]}
+                onPress={handleEmailSignUp}
                 activeOpacity={0.8}
                 disabled={loading}
               >
-                <View style={styles.googleButtonContent}>
-                  {loading ? (
-                    <ActivityIndicator color="#ffffff" />
-                  ) : (
-                    <>
-                      <View style={styles.googleLogoContainer}>
-                        <View style={[styles.googleLogoPart, { backgroundColor: '#4285F4', borderTopLeftRadius: 10, borderBottomLeftRadius: 10 }]} />
-                        <View style={[styles.googleLogoPart, { backgroundColor: '#EA4335' }]} />
-                        <View style={[styles.googleLogoPart, { backgroundColor: '#FBBC05', borderTopRightRadius: 10 }]} />
-                        <View style={[styles.googleLogoPart, { backgroundColor: '#34A853', borderBottomRightRadius: 10 }]} />
-                      </View>
-                      <ThemedText style={styles.googleButtonText}>Sign up with Google</ThemedText>
-                    </>
-                  )}
-                </View>
+                {loading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <ThemedText style={styles.signUpButtonText}>Sign Up</ThemedText>
+                )}
               </TouchableOpacity>
             </View>
           </ThemedView>
@@ -128,11 +161,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#000000',
   },
-  googleButton: {
-    backgroundColor: '#4285F4',
-    borderRadius: 4,
-    paddingVertical: 12,
+  inputContainer: {
+    marginBottom: 24,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#000000',
+  },
+  input: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
     paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    color: '#000000',
+  },
+  errorText: {
+    color: '#EA4335',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  signUpButton: {
+    backgroundColor: '#05688e',
+    borderRadius: 8,
+    paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
     minHeight: 48,
@@ -143,29 +199,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  googleButtonDisabled: {
+  signUpButtonDisabled: {
     opacity: 0.6,
   },
-  googleButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  googleLogoContainer: {
-    width: 20,
-    height: 20,
-    marginRight: 12,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  googleLogoPart: {
-    width: 10,
-    height: 10,
-  },
-  googleButtonText: {
+  signUpButtonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     letterSpacing: 0.25,
   },
 });

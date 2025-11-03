@@ -1,5 +1,6 @@
 {
   "expo": {
+    "owner": "cindytong",
     "name": "ic-mobile-app",
     "slug": "ic-mobile-app",
     "version": "1.0.0",
@@ -34,7 +35,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#f9f7f4"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
