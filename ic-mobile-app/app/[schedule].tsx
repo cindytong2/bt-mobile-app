@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { db } from "../config/firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import QRCode from "react-native-qrcode-svg";
 
 const AUTH_EMAIL_KEY = '@auth_user_email';
 
@@ -39,6 +40,20 @@ export default function ScheduleScreen() {
   const [users, setUsers] = useState<ICUser[]>([]);
   const [parentData, setParentData] = useState<ICUser | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Generate deterministic QR code data based on user email or userId
+  // This ensures the QR code stays the same for each user and doesn't change on re-render
+  const qrCodeData = useMemo(() => {
+    if (!parentData) return null;
+    
+    const qrPayload = {
+      email: parentData.email || userEmail || '',
+      name: parentData.name || '',
+      userId: parentData.userId || '',
+    };
+    
+    return JSON.stringify(qrPayload);
+  }, [parentData?.email, parentData?.name, parentData?.userId, userEmail]);
 
   // Reload email from AsyncStorage when screen comes into focus
   // This ensures we get the latest email after signing in
@@ -147,6 +162,29 @@ export default function ScheduleScreen() {
       <Text style={styles.header}>
         {parentData?.name ? `${parentData.name}'s Schedule` : 'Schedule'}
       </Text>
+
+      {/* QR Code Card */}
+      {parentData && qrCodeData && (
+        <View style={styles.qrCodeCard}>
+          <Text style={styles.qrCodeTitle}>Your QR Code</Text>
+          <View style={styles.qrCodeContainer}>
+            <QRCode
+              value={qrCodeData}
+              size={200}
+              color="#111827"
+              backgroundColor="#FFFFFF"
+              logo={undefined}
+              logoSize={0}
+              logoBackgroundColor="transparent"
+              logoMargin={0}
+              logoBorderRadius={0}
+            />
+          </View>
+          <Text style={styles.qrCodeSubtitle}>
+            Scan to verify your identity
+          </Text>
+        </View>
+      )}
 
       {/* Top tabs */}
       <View style={styles.topTabs}>
@@ -332,5 +370,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#111827", // white for highlighted session
     marginTop: 2,
+  },
+  qrCodeCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 20,
+    marginBottom: 10,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  qrCodeTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 16,
+  },
+  qrCodeContainer: {
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+  },
+  qrCodeSubtitle: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 12,
+    textAlign: "center",
   },
 });
