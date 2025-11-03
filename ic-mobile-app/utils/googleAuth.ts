@@ -3,12 +3,9 @@ import * as WebBrowser from 'expo-web-browser';
 import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../config/firebaseConfig';
 
-// Complete web browser authentication for OAuth
-WebBrowser.maybeCompleteAuthSession();
-
 const discovery = {
   authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-  tokenEndpoint: 'https://www.googleapis.com/oauth2/v4/token',
+  tokenEndpoint: 'https://oauth2.googleapis.com/token', // Updated to v2 token endpoint
   revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
 };
 
@@ -17,14 +14,16 @@ export async function signInWithGoogle() {
     // Create redirect URI - MUST use proxy for HTTPS URL (Google doesn't accept IP addresses)
     // Google OAuth requires redirect URIs to use valid top-level domains (.com, .org, etc.)
     // Expo proxy provides: https://auth.expo.io/@anonymous/ic-mobile-app
-    const redirectUri = AuthSession.makeRedirectUri({
+    let redirectUri = AuthSession.makeRedirectUri({
       useProxy: true, // Force use of Expo's HTTPS proxy service
     } as any);
     
-    // Validate that we got an HTTPS URL (not exp:// IP address)
+    // Force HTTPS proxy URI if we still got an IP-based URI
     if (redirectUri.startsWith('exp://')) {
-      console.warn('⚠️  Warning: Got IP-based redirect URI. Google requires HTTPS URLs.');
-      console.warn('   This might fail. Check your Expo configuration.');
+      console.warn('⚠️  Proxy not working, forcing HTTPS redirect URI...');
+      // Manually construct the Expo proxy URI
+      redirectUri = 'https://auth.expo.io/@anonymous/ic-mobile-app';
+      console.warn('   Using hardcoded proxy URI:', redirectUri);
     }
 
     // Get Google OAuth client ID from environment
@@ -33,10 +32,13 @@ export async function signInWithGoogle() {
     // Debug logging
     console.log('🔍 Google Auth Debug Info:');
     console.log('Redirect URI:', redirectUri);
-    console.log('⚠️  IMPORTANT: Add this exact redirect URI to Google Cloud Console!');
+    console.log('Redirect URI length:', redirectUri.length);
+    console.log('Redirect URI (encoded):', encodeURIComponent(redirectUri));
+    console.log('⚠️  CRITICAL: Copy the EXACT redirect URI above and verify it in Google Cloud Console!');
     console.log('    Go to: APIs & Services → Credentials → Your OAuth Client ID');
-    console.log('    Then add this URI to "Authorized redirect URIs":');
-    console.log('    →', redirectUri);
+    console.log('    Scroll to "Authorized redirect URIs" section');
+    console.log('    Make sure this EXACT string is there:', redirectUri);
+    console.log('    NO trailing slash, NO spaces, EXACT match!');
     console.log('Client ID configured:', !!clientId);
     console.log('Client ID value:', clientId ? `${clientId.substring(0, 20)}...` : 'NOT SET');
     
@@ -52,51 +54,166 @@ export async function signInWithGoogle() {
       responseType: AuthSession.ResponseType.Code,
       redirectUri,
       // PKCE is automatically used with Code flow, which Google supports
+      // Important OAuth parameters:
+      // - prompt: "select_account" - forces Google to show account selection screen
+      // - access_type: "offline" - requests refresh token for persistent auth
+      extraParams: {
+        prompt: 'select_account',
+        access_type: 'offline',
+      },
     } as any);
 
     // Prompt for authentication
-    const result = await request.promptAsync(discovery);
+    console.log('🚀 Starting Google authentication...');
+    console.log('Redirect URI being used:', redirectUri);
+    console.log('⚠️  Make sure this EXACT URI is in Google Cloud Console!');
+    console.log('   Add BOTH of these to be safe:');
+    console.log('   - https://auth.expo.io/@anonymous/ic-mobile-app');
+    console.log('   - https://auth.expo.io/@anonymous/ic-mobile-app/');
+    
+    // Set up timeout to catch if promptAsync never returns
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Authentication timeout after 60 seconds - redirect did not complete'));
+      }, 60000);
+    });
+    
+    // Call maybeCompleteAuthSession right before prompting to handle any pending redirects
+    WebBrowser.maybeCompleteAuthSession();
+    
+    let result;
+    try {
+      console.log('⏳ Waiting for authentication response...');
+      console.log('   (This may take up to 60 seconds - if timeout, check redirect URI in Google Cloud Console)');
+      console.log('   (If redirect happens but not caught, check deep linking configuration)');
+      
+      // Race between authentication and timeout
+      result = await Promise.race([
+        request.promptAsync(discovery).catch((error) => {
+          console.error('❌ Error in promptAsync:', error);
+          throw error;
+        }),
+        timeoutPromise
+      ]) as any;
+      
+      if (!result) {
+        throw new Error('No result returned from authentication prompt');
+      }
+      
+      console.log('✅ Authentication response received!');
+      console.log('📋 Authentication result type:', result.type);
+      
+    } catch (promptError: any) {
+      console.error('❌ Error during authentication prompt:', promptError);
+      console.error('Error message:', promptError.message);
+      console.error('Error stack:', promptError.stack);
+      
+      if (promptError.message && promptError.message.includes('timeout')) {
+        throw new Error(
+          'Authentication timed out after 60 seconds.\n\n' +
+          'This usually means:\n' +
+          '1. The redirect URI does not match exactly in Google Cloud Console\n' +
+          '2. The redirect is happening but not being caught by the app\n' +
+          '3. Check that https://auth.expo.io/@anonymous/ic-mobile-app is in Google Cloud Console\n' +
+          '4. Wait 2-3 minutes after adding the URI for changes to propagate'
+        );
+      }
+      throw promptError;
+    }
+    
+    if (!result) {
+      throw new Error('No result returned from authentication prompt');
+    }
+    
+    console.log('📋 Authentication result type:', result.type);
+    
+    // Only access params if it's a success result
+    if (result.type === 'success') {
+      console.log('📋 Result params:', JSON.stringify((result as any).params || {}, null, 2));
+    } else {
+      console.log('⚠️  Authentication did not succeed. Type:', result.type);
+    }
 
     if (result.type === 'success') {
       // Exchange authorization code for ID token
       const { code } = result.params;
       
+      console.log('✅ Authentication successful, received code:', !!code);
+      
       if (code) {
-        // Exchange code for tokens using the code verifier from the request
-        // The request object stores the codeVerifier internally for PKCE
-        const tokenResponse = await AuthSession.exchangeCodeAsync(
-          {
-            clientId,
-            code,
-            redirectUri,
-            extraParams: {},
-            // @ts-ignore - codeVerifier is stored in the request but TypeScript may not see it
-            codeVerifier: (request as any).codeVerifier,
-          },
-          discovery
-        );
+        try {
+          // Get the code verifier from the request object
+          // expo-auth-session stores it internally when PKCE is enabled
+          const codeVerifier = (request as any).codeVerifier;
+          
+          console.log('🔄 Exchanging code for tokens...');
+          console.log('Code verifier present:', !!codeVerifier);
+          
+          if (!codeVerifier) {
+            console.error('❌ Code verifier not found in request object');
+            throw new Error('PKCE code verifier not found. Unable to exchange code for tokens.');
+          }
+          
+          // Exchange code for tokens using the code verifier from the request
+          const tokenResponse = await AuthSession.exchangeCodeAsync(
+            {
+              clientId,
+              code,
+              redirectUri,
+              extraParams: {},
+              codeVerifier,
+            } as any, // codeVerifier is required for PKCE but TypeScript may not recognize it
+            discovery
+          );
 
-        const idToken = tokenResponse.idToken;
-        
-        if (idToken) {
-          // Create Firebase credential
-          const credential = GoogleAuthProvider.credential(idToken);
+          console.log('✅ Token exchange successful');
+          console.log('ID token present:', !!tokenResponse.idToken);
+          console.log('Access token present:', !!tokenResponse.accessToken);
+
+          const idToken = tokenResponse.idToken;
           
-          // Sign in with Firebase
-          const userCredential = await signInWithCredential(auth, credential);
-          
-          return {
-            success: true,
-            user: userCredential.user,
-            email: userCredential.user.email || null,
-          };
-        } else {
-          throw new Error('No ID token received from token exchange');
+          if (idToken) {
+            console.log('🔥 Creating Firebase credential...');
+            // Create Firebase credential
+            const credential = GoogleAuthProvider.credential(idToken);
+            
+            console.log('🔐 Signing in with Firebase...');
+            // Sign in with Firebase
+            const userCredential = await signInWithCredential(auth, credential);
+            
+            console.log('✅ Firebase sign-in successful!');
+            console.log('User email:', userCredential.user.email);
+            
+            return {
+              success: true,
+              user: userCredential.user,
+              email: userCredential.user.email || null,
+            };
+          } else {
+            console.error('❌ No ID token in token response');
+            console.log('Token response:', JSON.stringify(tokenResponse, null, 2));
+            throw new Error('No ID token received from token exchange');
+          }
+        } catch (exchangeError: any) {
+          console.error('❌ Token exchange failed:', exchangeError);
+          console.error('Error details:', exchangeError.message);
+          throw new Error(`Token exchange failed: ${exchangeError.message}`);
         }
       } else {
+        console.error('❌ No authorization code in result params');
+        console.log('Result params:', JSON.stringify(result.params, null, 2));
         throw new Error('No authorization code received');
       }
     } else {
+      console.log('❌ Authentication failed or cancelled:', result.type);
+      console.log('Full result object:', JSON.stringify(result, null, 2));
+      
+      // Check if there's an error in the result
+      if ((result as any).error) {
+        console.error('Error in result:', (result as any).error);
+        console.error('Error description:', (result as any).errorDescription);
+      }
+      
       return {
         success: false,
         error: result.type === 'cancel' ? 'Authentication cancelled' : 'Authentication failed',
