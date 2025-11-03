@@ -16,7 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import QRCode from "react-native-qrcode-svg";
 
-const AUTH_EMAIL_KEY = '@auth_user_email';
+const AUTH_EMAIL_KEY = "@auth_user_email";
 
 type ICUser = {
   userId: string;
@@ -45,13 +45,13 @@ export default function ScheduleScreen() {
   // This ensures the QR code stays the same for each user and doesn't change on re-render
   const qrCodeData = useMemo(() => {
     if (!parentData) return null;
-    
+
     const qrPayload = {
-      email: parentData.email || userEmail || '',
-      name: parentData.name || '',
-      userId: parentData.userId || '',
+      email: parentData.email || userEmail || "",
+      name: parentData.name || "",
+      userId: parentData.userId || "",
     };
-    
+
     return JSON.stringify(qrPayload);
   }, [parentData?.email, parentData?.name, parentData?.userId, userEmail]);
 
@@ -62,14 +62,17 @@ export default function ScheduleScreen() {
       const loadEmail = async () => {
         try {
           const email = await AsyncStorage.getItem(AUTH_EMAIL_KEY);
-          console.log('📧 Schedule: Loaded email from AsyncStorage on focus:', email);
+          console.log(
+            "📧 Schedule: Loaded email from AsyncStorage on focus:",
+            email
+          );
           if (email) {
             setUserEmail(email);
           } else {
             setUserEmail(null);
           }
         } catch (error) {
-          console.error('Error loading email:', error);
+          console.error("Error loading email:", error);
         }
       };
       loadEmail();
@@ -79,7 +82,7 @@ export default function ScheduleScreen() {
   // Also sync with context email
   useEffect(() => {
     if (contextUserEmail !== userEmail) {
-      console.log('📧 Schedule: Syncing email from context:', contextUserEmail);
+      console.log("📧 Schedule: Syncing email from context:", contextUserEmail);
       setUserEmail(contextUserEmail);
     }
   }, [contextUserEmail]);
@@ -87,15 +90,15 @@ export default function ScheduleScreen() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !userEmail) {
-      router.replace('/');
+      router.replace("/");
     }
   }, [authLoading, userEmail, router]);
 
   // Redirect to QR scanner if email is businesstoday@gmail.com
   useEffect(() => {
-    if (userEmail && userEmail.toLowerCase() === 'businesstoday@gmail.com') {
-      console.log('📧 Schedule: Redirecting to QR scanner for:', userEmail);
-      router.replace('/qr-scanner');
+    if (userEmail && userEmail.toLowerCase() === "admin@businesstoday.org") {
+      console.log("📧 Schedule: Redirecting to QR scanner for:", userEmail);
+      router.replace("/qr-scanner");
     }
   }, [userEmail, router]);
 
@@ -130,15 +133,24 @@ export default function ScheduleScreen() {
         );
 
         console.log("📧 Schedule: Searching for email:", userEmail);
-        console.log("📧 Schedule: Found user:", currentUser ? currentUser.email : 'NOT FOUND');
+        console.log(
+          "📧 Schedule: Found user:",
+          currentUser ? currentUser.email : "NOT FOUND"
+        );
 
         if (currentUser) {
           setParentData(currentUser);
           console.log("✅ Schedule: Set parentData for:", currentUser.email);
           console.log("✅ Schedule: User data:", currentUser);
         } else {
-          console.log("❌ Schedule: No matching user found for email:", userEmail);
-          console.log("📧 Schedule: Available emails:", usersList.map(u => u.email));
+          console.log(
+            "❌ Schedule: No matching user found for email:",
+            userEmail
+          );
+          console.log(
+            "📧 Schedule: Available emails:",
+            usersList.map((u) => u.email)
+          );
         }
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -168,7 +180,7 @@ export default function ScheduleScreen() {
       {/* Header + disable header at the top */}
       <Stack.Screen options={{ headerShown: false }} />
       <Text style={styles.header}>
-        {parentData?.name ? `${parentData.name}'s Schedule` : 'Schedule'}
+        {parentData?.name ? `${parentData.name}'s Schedule` : "Schedule"}
       </Text>
 
       {/* QR Code Card */}
@@ -216,7 +228,10 @@ export default function ScheduleScreen() {
             activeOpacity={0.7}
           >
             <Text
-              style={[styles.dayText, idx === selectedDayIndex && styles.activeDayText]}
+              style={[
+                styles.dayText,
+                idx === selectedDayIndex && styles.activeDayText,
+              ]}
             >
               {day}
             </Text>
@@ -230,27 +245,37 @@ export default function ScheduleScreen() {
         {(() => {
           // Map day index to session field names
           const sessionFields = {
-            0: { session1: 'day1_session1', session2: 'day1_session2' }, // Saturday
-            1: { session1: 'day2_session1', session2: 'day2_session2' }, // Sunday
-            2: { session1: 'day3_session1', session2: 'day3_session2' }, // Monday
+            0: { session1: "day1_session1", session2: "day1_session2" }, // Saturday
+            1: { session1: "day2_session1", session2: "day2_session2" }, // Sunday
+            2: { session1: "day3_session1", session2: "day3_session2" }, // Monday
           };
-          
-          const fields = sessionFields[selectedDayIndex as keyof typeof sessionFields];
-          const session1 = parentData?.[fields.session1 as keyof ICUser] as string | undefined;
-          const session2 = parentData?.[fields.session2 as keyof ICUser] as string | undefined;
-          
+
+          const fields =
+            sessionFields[selectedDayIndex as keyof typeof sessionFields];
+          const session1 = parentData?.[fields.session1 as keyof ICUser] as
+            | string
+            | undefined;
+          const session2 = parentData?.[fields.session2 as keyof ICUser] as
+            | string
+            | undefined;
+
           return (
             <>
               {/* Session 1 */}
               {session1 && (
                 <View
-                  style={[styles.sessionContainer, { backgroundColor: "#05688e" }]}
+                  style={[
+                    styles.sessionContainer,
+                    { backgroundColor: "#05688e" },
+                  ]}
                 >
                   <View style={styles.timeContainer}>
                     <Text style={[styles.timeText, { color: "#ffffff" }]}>
                       1:30 pm
                     </Text>
-                    <Text style={[styles.timeText, { color: "white" }]}>2:30 pm</Text>
+                    <Text style={[styles.timeText, { color: "white" }]}>
+                      2:30 pm
+                    </Text>
                   </View>
                   <View style={styles.infoContainer}>
                     <Text style={[styles.sessionTitle, { color: "white" }]}>
@@ -262,17 +287,22 @@ export default function ScheduleScreen() {
                   </View>
                 </View>
               )}
-              
+
               {/* Session 2 */}
               {session2 && (
                 <View
-                  style={[styles.sessionContainer, { backgroundColor: "#f3f4f6" }]}
+                  style={[
+                    styles.sessionContainer,
+                    { backgroundColor: "#f3f4f6" },
+                  ]}
                 >
                   <View style={styles.timeContainer}>
                     <Text style={[styles.timeText, { color: "#000000" }]}>
                       2:30 pm
                     </Text>
-                    <Text style={[styles.timeText, { color: "black" }]}>3:30 pm</Text>
+                    <Text style={[styles.timeText, { color: "black" }]}>
+                      3:30 pm
+                    </Text>
                   </View>
                   <View style={styles.infoContainer}>
                     <Text style={[styles.sessionTitle, { color: "black" }]}>
@@ -300,8 +330,8 @@ const styles = StyleSheet.create({
     paddingTop: 40,
   },
   centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
     fontSize: 32,
