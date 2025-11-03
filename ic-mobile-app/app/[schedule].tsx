@@ -96,7 +96,7 @@ export default function ScheduleScreen() {
 
   // Redirect to QR scanner if email is businesstoday@gmail.com
   useEffect(() => {
-    if (userEmail && userEmail.toLowerCase() === "admin@businesstoday.org") {
+    if (userEmail && userEmail.toLowerCase() === "businesstoday@gmail.com") {
       console.log("📧 Schedule: Redirecting to QR scanner for:", userEmail);
       router.replace("/qr-scanner");
     }
