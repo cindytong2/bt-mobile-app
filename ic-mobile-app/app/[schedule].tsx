@@ -35,33 +35,7 @@ export default function ScheduleScreen() {
   const [userEmail, setUserEmail] = useState<string | null>(contextUserEmail);
   const router = useRouter();
   const days = ["Saturday", "Sunday", "Monday"];
-  const [sessions, setSessions] = useState([
-    {
-      start: "1:30 pm",
-      end: "2:30 pm",
-      title: "Session 1",
-      location: "Firestone Library",
-      highlighted: true,
-    },
-    {
-      start: "2:30 pm",
-      end: "3:30 pm",
-      title: "Session 2",
-      location: "Yeh College",
-    },
-    {
-      start: "3:30 pm",
-      end: "4:30 pm",
-      title: "Session 3",
-      location: "RoMa Dining Hall",
-    },
-    {
-      start: "4:30 pm",
-      end: "5:30 pm",
-      title: "Session 4",
-      location: "Firestone Library",
-    },
-  ]);
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0); // 0 = Saturday, 1 = Sunday, 2 = Monday
   const [users, setUsers] = useState<ICUser[]>([]);
   const [parentData, setParentData] = useState<ICUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -170,7 +144,9 @@ export default function ScheduleScreen() {
     <View style={styles.container}>
       {/* Header + disable header at the top */}
       <Stack.Screen options={{ headerShown: false }} />
-      <Text style={styles.header}>Your Schedule</Text>
+      <Text style={styles.header}>
+        {parentData?.name ? `${parentData.name}'s Schedule` : 'Schedule'}
+      </Text>
 
       {/* Top tabs */}
       <View style={styles.topTabs}>
@@ -188,59 +164,83 @@ export default function ScheduleScreen() {
       {/* Day selector */}
       <View style={styles.daysContainer}>
         {days.map((day, idx) => (
-          <Text
+          <TouchableOpacity
             key={idx}
-            style={[styles.dayText, idx === 0 && styles.activeDayText]}
+            onPress={() => setSelectedDayIndex(idx)}
+            activeOpacity={0.7}
           >
-            {day}
-          </Text>
+            <Text
+              style={[styles.dayText, idx === selectedDayIndex && styles.activeDayText]}
+            >
+              {day}
+            </Text>
+          </TouchableOpacity>
         ))}
       </View>
 
       {/* Schedule sessions */}
       <ScrollView style={{ marginTop: 10 }}>
-        {/* <Text>{JSON.stringify(parentData, null, 2)}</Text> */}
-        {/* Day 1 Sessions */}
-        {parentData?.day1_session1 && (
-          <View
-            style={[styles.sessionContainer, { backgroundColor: "#05688e" }]}
-          >
-            <View style={styles.timeContainer}>
-              <Text style={[styles.timeText, { color: "#ffffff" }]}>
-                1:30 pm
-              </Text>
-              <Text style={[styles.timeText, { color: "white" }]}>2:30 pm</Text>
-            </View>
-            <View style={styles.infoContainer}>
-              <Text style={[styles.sessionTitle, { color: "white" }]}>
-                Session 1
-              </Text>
-              <Text style={[styles.sessionLocation, { color: "white" }]}>
-                {parentData?.day1_session1}
-              </Text>
-            </View>
-          </View>
-        )}
-        {parentData?.day1_session2 && (
-          <View
-            style={[styles.sessionContainer, { backgroundColor: "#f3f4f6" }]}
-          >
-            <View style={styles.timeContainer}>
-              <Text style={[styles.timeText, { color: "#000000" }]}>
-                2:30 pm
-              </Text>
-              <Text style={[styles.timeText, { color: "black" }]}>3:30 pm</Text>
-            </View>
-            <View style={styles.infoContainer}>
-              <Text style={[styles.sessionTitle, { color: "black" }]}>
-                Session 2
-              </Text>
-              <Text style={[styles.sessionLocation, { color: "black" }]}>
-                {parentData?.day1_session2}
-              </Text>
-            </View>
-          </View>
-        )}
+        {/* Render sessions based on selected day */}
+        {(() => {
+          // Map day index to session field names
+          const sessionFields = {
+            0: { session1: 'day1_session1', session2: 'day1_session2' }, // Saturday
+            1: { session1: 'day2_session1', session2: 'day2_session2' }, // Sunday
+            2: { session1: 'day3_session1', session2: 'day3_session2' }, // Monday
+          };
+          
+          const fields = sessionFields[selectedDayIndex as keyof typeof sessionFields];
+          const session1 = parentData?.[fields.session1 as keyof ICUser] as string | undefined;
+          const session2 = parentData?.[fields.session2 as keyof ICUser] as string | undefined;
+          
+          return (
+            <>
+              {/* Session 1 */}
+              {session1 && (
+                <View
+                  style={[styles.sessionContainer, { backgroundColor: "#05688e" }]}
+                >
+                  <View style={styles.timeContainer}>
+                    <Text style={[styles.timeText, { color: "#ffffff" }]}>
+                      1:30 pm
+                    </Text>
+                    <Text style={[styles.timeText, { color: "white" }]}>2:30 pm</Text>
+                  </View>
+                  <View style={styles.infoContainer}>
+                    <Text style={[styles.sessionTitle, { color: "white" }]}>
+                      Session 1
+                    </Text>
+                    <Text style={[styles.sessionLocation, { color: "white" }]}>
+                      {session1}
+                    </Text>
+                  </View>
+                </View>
+              )}
+              
+              {/* Session 2 */}
+              {session2 && (
+                <View
+                  style={[styles.sessionContainer, { backgroundColor: "#f3f4f6" }]}
+                >
+                  <View style={styles.timeContainer}>
+                    <Text style={[styles.timeText, { color: "#000000" }]}>
+                      2:30 pm
+                    </Text>
+                    <Text style={[styles.timeText, { color: "black" }]}>3:30 pm</Text>
+                  </View>
+                  <View style={styles.infoContainer}>
+                    <Text style={[styles.sessionTitle, { color: "black" }]}>
+                      Session 2
+                    </Text>
+                    <Text style={[styles.sessionLocation, { color: "black" }]}>
+                      {session2}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </>
+          );
+        })()}
       </ScrollView>
     </View>
   );
