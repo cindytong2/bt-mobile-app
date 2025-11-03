@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { recordScanToSheet } from "@/utils/googleSheets";
 
 const AUTH_EMAIL_KEY = '@auth_user_email';
+const SCAN_COOLDOWN_MS = 3000; // 3 seconds cooldown between scans
 
 export default function QRScannerScreen() {
   const { userEmail: contextUserEmail } = useAuth();
@@ -23,6 +24,12 @@ export default function QRScannerScreen() {
   const [scanned, setScanned] = useState(false);
   const [recording, setRecording] = useState(false);
   const router = useRouter();
+  
+  // Use refs to track state synchronously and prevent race conditions
+  const isProcessingRef = useRef(false);
+  const lastScanTimeRef = useRef<number>(0);
+  const lastScannedDataRef = useRef<string | null>(null);
+  const cooldownTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load email from AsyncStorage
   useEffect(() => {
@@ -51,9 +58,41 @@ export default function QRScannerScreen() {
     }
   }, [permission]);
 
+  // Cleanup cooldown timer on unmount
+  useEffect(() => {
+    return () => {
+      if (cooldownTimerRef.current) {
+        clearTimeout(cooldownTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
-    if (scanned) return; // Prevent multiple scans
+    const now = Date.now();
     
+    // Prevent multiple scans using refs for synchronous checks
+    if (isProcessingRef.current) {
+      console.log("⚠️ Scan ignored: Already processing a scan");
+      return;
+    }
+    
+    // Check cooldown period
+    const timeSinceLastScan = now - lastScanTimeRef.current;
+    if (timeSinceLastScan < SCAN_COOLDOWN_MS) {
+      console.log(`⚠️ Scan ignored: Cooldown active (${Math.ceil((SCAN_COOLDOWN_MS - timeSinceLastScan) / 1000)}s remaining)`);
+      return;
+    }
+    
+    // Prevent scanning the same QR code immediately
+    if (data === lastScannedDataRef.current && timeSinceLastScan < SCAN_COOLDOWN_MS * 2) {
+      console.log("⚠️ Scan ignored: Same QR code scanned too soon");
+      return;
+    }
+    
+    // Mark as processing immediately
+    isProcessingRef.current = true;
+    lastScanTimeRef.current = now;
+    lastScannedDataRef.current = data;
     setScanned(true);
     
     try {
@@ -70,55 +109,35 @@ export default function QRScannerScreen() {
       if (currentUserEmail === 'businesstoday@gmail.com') {
         // Record scan to Google Sheet
         setRecording(true);
-        const success = await recordScanToSheet(scannedName);
-        setRecording(false);
+        let success = false;
+        try {
+          success = await recordScanToSheet(scannedName);
+        } finally {
+          setRecording(false);
+        }
+        
+        // Start cooldown immediately after processing
+        startCooldown();
         
         if (success) {
           Alert.alert(
             "QR Code Scanned ✓",
-            `Email: ${scannedEmail}\nName: ${scannedName}\nUser ID: ${scannedUserId}\n\n✅ Recorded to attendance sheet`,
-            [
-              {
-                text: "Scan Again",
-                onPress: () => setScanned(false),
-              },
-              {
-                text: "OK",
-                onPress: () => setScanned(false),
-              },
-            ]
+            `Email: ${scannedEmail}\nName: ${scannedName}\nUser ID: ${scannedUserId}\n\n✅ Recorded to attendance sheet`
           );
         } else {
           Alert.alert(
             "QR Code Scanned",
-            `Email: ${scannedEmail}\nName: ${scannedName}\nUser ID: ${scannedUserId}\n\n⚠️ Could not record to sheet`,
-            [
-              {
-                text: "Scan Again",
-                onPress: () => setScanned(false),
-              },
-              {
-                text: "OK",
-                onPress: () => setScanned(false),
-              },
-            ]
+            `Email: ${scannedEmail}\nName: ${scannedName}\nUser ID: ${scannedUserId}\n\n⚠️ Could not record to sheet`
           );
         }
       } else {
         // Regular scan without recording
+        // Start cooldown immediately after processing
+        startCooldown();
+        
         Alert.alert(
           "QR Code Scanned",
-          `Email: ${scannedEmail}\nName: ${scannedName}\nUser ID: ${scannedUserId}`,
-          [
-            {
-              text: "Scan Again",
-              onPress: () => setScanned(false),
-            },
-            {
-              text: "OK",
-              onPress: () => setScanned(false),
-            },
-          ]
+          `Email: ${scannedEmail}\nName: ${scannedName}\nUser ID: ${scannedUserId}`
         );
       }
     } catch (error) {
@@ -129,40 +148,45 @@ export default function QRScannerScreen() {
       const currentUserEmail = userEmail?.toLowerCase();
       if (currentUserEmail === 'businesstoday@gmail.com') {
         setRecording(true);
-        const success = await recordScanToSheet(data); // Use raw data as name
-        setRecording(false);
+        let success = false;
+        try {
+          success = await recordScanToSheet(data); // Use raw data as name
+        } finally {
+          setRecording(false);
+        }
+        
+        // Start cooldown immediately after processing
+        startCooldown();
         
         Alert.alert(
           success ? "QR Code Scanned ✓" : "QR Code Scanned",
-          `Data: ${data}${success ? '\n\n✅ Recorded to attendance sheet' : '\n\n⚠️ Could not record to sheet'}`,
-          [
-            {
-              text: "Scan Again",
-              onPress: () => setScanned(false),
-            },
-            {
-              text: "OK",
-              onPress: () => setScanned(false),
-            },
-          ]
+          `Data: ${data}${success ? '\n\n✅ Recorded to attendance sheet' : '\n\n⚠️ Could not record to sheet'}`
         );
       } else {
+        // Start cooldown immediately after processing
+        startCooldown();
+        
         Alert.alert(
           "QR Code Scanned",
-          `Data: ${data}`,
-          [
-            {
-              text: "Scan Again",
-              onPress: () => setScanned(false),
-            },
-            {
-              text: "OK",
-              onPress: () => setScanned(false),
-            },
-          ]
+          `Data: ${data}`
         );
       }
     }
+  };
+
+  // Start cooldown period after scan
+  const startCooldown = () => {
+    // Clear any existing timer
+    if (cooldownTimerRef.current) {
+      clearTimeout(cooldownTimerRef.current);
+    }
+    
+    // Set cooldown timer
+    cooldownTimerRef.current = setTimeout(() => {
+      isProcessingRef.current = false;
+      setScanned(false);
+      console.log("✅ Cooldown expired, ready for next scan");
+    }, SCAN_COOLDOWN_MS);
   };
 
   if (!permission) {
@@ -211,7 +235,7 @@ export default function QRScannerScreen() {
         <CameraView
           style={styles.camera}
           facing="back"
-          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+          onBarcodeScanned={scanned || isProcessingRef.current ? undefined : handleBarCodeScanned}
           barcodeScannerSettings={{
             barcodeTypes: ["qr"],
           }}
@@ -223,7 +247,9 @@ export default function QRScannerScreen() {
             <View style={styles.scanFrame} />
           </View>
           <Text style={styles.instructions}>
-            Position the QR code within the frame
+            {scanned || isProcessingRef.current
+              ? "Processing scan... Please wait"
+              : "Position the QR code within the frame"}
           </Text>
         </View>
       </View>
