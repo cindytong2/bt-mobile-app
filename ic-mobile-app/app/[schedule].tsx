@@ -91,6 +91,14 @@ export default function ScheduleScreen() {
     }
   }, [authLoading, userEmail, router]);
 
+  // Redirect to QR scanner if email is businesstoday@gmail.com
+  useEffect(() => {
+    if (userEmail && userEmail.toLowerCase() === 'businesstoday@gmail.com') {
+      console.log('📧 Schedule: Redirecting to QR scanner for:', userEmail);
+      router.replace('/qr-scanner');
+    }
+  }, [userEmail, router]);
+
   // Fetch ic-users collection from Firestore
   useEffect(() => {
     if (!userEmail) {

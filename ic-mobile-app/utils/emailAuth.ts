@@ -27,6 +27,20 @@ export async function signInWithEmail(email: string): Promise<EmailAuthResult> {
     
     console.log('🔍 Checking email in Firestore:', normalizedEmail);
 
+    // Special case: Allow businesstoday@gmail.com to bypass Firestore check
+    // This is for QR scanner access
+    if (normalizedEmail === 'businesstoday@gmail.com') {
+      console.log('✅ Special admin email detected, allowing access');
+      return {
+        success: true,
+        email: normalizedEmail,
+        userData: {
+          email: normalizedEmail,
+          isAdmin: true,
+        },
+      };
+    }
+
     // Query Firestore for user with this email
     const usersRef = collection(db, 'ic-users');
     const q = query(usersRef, where('email', '==', normalizedEmail));

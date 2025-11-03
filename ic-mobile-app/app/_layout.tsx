@@ -26,6 +26,7 @@ export default function RootLayout() {
           <Stack.Screen name="signup" options={{ headerShown: false }} />
           <Stack.Screen name="explore" options={{ title: 'Explore' }} />
           <Stack.Screen name="schedule" options={{headerShown: false }} />
+          <Stack.Screen name="qr-scanner" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style="auto" />
