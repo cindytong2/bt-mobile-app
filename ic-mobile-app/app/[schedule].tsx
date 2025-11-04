@@ -213,7 +213,7 @@ export default function ScheduleScreen() {
       {/* Header + disable header at the top */}
       <Stack.Screen options={{ headerShown: false }} />
       <Text style={styles.header}>
-        {parentData?.name ? `${parentData.name}'s Schedule` : "Schedule"}
+        {parentData?.name ? `Hello, ${parentData.name}!` : "Hello!"}
       </Text>
 
       {/* Top tabs */}
@@ -250,7 +250,7 @@ export default function ScheduleScreen() {
       {selectedTab === "qr" && parentData && qrCodeData && (
         <ScrollView style={{ marginTop: 10 }}>
           <View style={styles.qrCodeCard}>
-            <Text style={styles.qrCodeTitle}>Your QR Code</Text>
+            <Text style={styles.qrCodeTitle}>Scan to Check-In</Text>
             <View style={styles.qrCodeContainer}>
               <QRCode
                 value={qrCodeData}
@@ -264,9 +264,6 @@ export default function ScheduleScreen() {
                 logoBorderRadius={0}
               />
             </View>
-            <Text style={styles.qrCodeSubtitle}>
-              Scan to verify your identity
-            </Text>
           </View>
         </ScrollView>
       )}
@@ -298,21 +295,188 @@ export default function ScheduleScreen() {
           <ScrollView style={{ marginTop: 10 }}>
             {/* Render sessions based on selected day */}
             {(() => {
-              // Map day index to session field names
+              // Saturday has a full hardcoded schedule
+              if (selectedDayIndex === 0) {
+                const session1 = parentData?.["day1_session1" as keyof ICUser] as string | undefined;
+                const session2 = parentData?.["day1_session2" as keyof ICUser] as string | undefined;
+
+                return (
+                  <>
+                    {/* Registration */}
+                    <View style={[styles.sessionContainer, { backgroundColor: "#f3f4f6" }]}>
+                      <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: "#000000" }]}>11:00 am</Text>
+                        <Text style={[styles.timeText, { color: "black" }]}>11:30 am</Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={[styles.sessionTitle, { color: "black" }]}>Registration</Text>
+                      </View>
+                    </View>
+
+                    {/* Small Group Meetings */}
+                    <View style={[styles.sessionContainer, { backgroundColor: "#E5E7EB" }]}>
+                      <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: "#000000" }]}>11:30 am</Text>
+                        <Text style={[styles.timeText, { color: "black" }]}>12:00 pm</Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={[styles.sessionTitle, { color: "black" }]}>Small Group Meetings</Text>
+                      </View>
+                    </View>
+
+                    {/* Business Today Opening Remarks */}
+                    <View style={[styles.sessionContainer, { backgroundColor: "#f3f4f6" }]}>
+                      <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: "#000000" }]}>12:00 pm</Text>
+                        <Text style={[styles.timeText, { color: "black" }]}>12:15 pm</Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={[styles.sessionTitle, { color: "black" }]}>Business Today Opening Remarks</Text>
+                      </View>
+                    </View>
+
+                    {/* Keynote 1 */}
+                    <View style={[styles.sessionContainer, { backgroundColor: "#E5E7EB" }]}>
+                      <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: "#000000" }]}>12:15 pm</Text>
+                        <Text style={[styles.timeText, { color: "black" }]}>1:00 pm</Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={[styles.sessionTitle, { color: "black" }]}>Keynote 1: Duncan Niederauer</Text>
+                        <Text style={[styles.sessionLocation, { color: "black" }]}>Former CEO of NYSE Euronext</Text>
+                      </View>
+                    </View>
+
+                    {/* Transition Period */}
+                    <View style={[styles.sessionContainer, { backgroundColor: "#f3f4f6" }]}>
+                      <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: "#000000" }]}>1:00 pm</Text>
+                        <Text style={[styles.timeText, { color: "black" }]}>1:15 pm</Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={[styles.sessionTitle, { color: "black" }]}>Transition Period</Text>
+                      </View>
+                    </View>
+
+                    {/* Lunch / Coffee Break */}
+                    <View style={[styles.sessionContainer, { backgroundColor: "#E5E7EB" }]}>
+                      <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: "#000000" }]}>1:15 pm</Text>
+                        <Text style={[styles.timeText, { color: "black" }]}>2:00 pm</Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={[styles.sessionTitle, { color: "black" }]}>Lunch / Coffee Break</Text>
+                      </View>
+                    </View>
+
+                    {/* Transition Period */}
+                    <View style={[styles.sessionContainer, { backgroundColor: "#f3f4f6" }]}>
+                      <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: "#000000" }]}>2:15 pm</Text>
+                        <Text style={[styles.timeText, { color: "black" }]}>2:30 pm</Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={[styles.sessionTitle, { color: "black" }]}>Transition Period</Text>
+                      </View>
+                    </View>
+
+                    {/* Keynote 2 */}
+                    <View style={[styles.sessionContainer, { backgroundColor: "#E5E7EB" }]}>
+                      <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: "#000000" }]}>2:30 pm</Text>
+                        <Text style={[styles.timeText, { color: "black" }]}>3:15 pm</Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={[styles.sessionTitle, { color: "black" }]}>Keynote 2: Sruta Vootukuru</Text>
+                        <Text style={[styles.sessionLocation, { color: "black" }]}>Chief Digital and Carrier Officer at Liberty Latin America, Founding Executive of Sling TV</Text>
+                      </View>
+                    </View>
+
+                    {/* Transition Period */}
+                    <View style={[styles.sessionContainer, { backgroundColor: "#f3f4f6" }]}>
+                      <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: "#000000" }]}>3:15 pm</Text>
+                        <Text style={[styles.timeText, { color: "black" }]}>3:30 pm</Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={[styles.sessionTitle, { color: "black" }]}>Transition Period</Text>
+                      </View>
+                    </View>
+
+                    {/* Executive Seminar 1 - Dynamic from Firestore */}
+                    {session1 && (
+                      <View style={[styles.sessionContainer, { backgroundColor: "#E5E7EB" }]}>
+                        <View style={styles.timeContainer}>
+                          <Text style={[styles.timeText, { color: "#000000" }]}>3:45 pm</Text>
+                          <Text style={[styles.timeText, { color: "black" }]}>4:30 pm</Text>
+                        </View>
+                        <View style={styles.infoContainer}>
+                          <Text style={[styles.sessionTitle, { color: "black" }]}>Executive Seminar 1</Text>
+                          <Text style={[styles.sessionLocation, { color: "black" }]}>{session1}</Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Transition Period */}
+                    <View style={[styles.sessionContainer, { backgroundColor: "#f3f4f6" }]}>
+                      <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: "#000000" }]}>4:30 pm</Text>
+                        <Text style={[styles.timeText, { color: "black" }]}>4:45 pm</Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={[styles.sessionTitle, { color: "black" }]}>Transition Period</Text>
+                      </View>
+                    </View>
+
+                    {/* Executive Seminar 2 - Dynamic from Firestore */}
+                    {session2 && (
+                      <View style={[styles.sessionContainer, { backgroundColor: "#E5E7EB" }]}>
+                        <View style={styles.timeContainer}>
+                          <Text style={[styles.timeText, { color: "#000000" }]}>4:45 pm</Text>
+                          <Text style={[styles.timeText, { color: "black" }]}>5:30 pm</Text>
+                        </View>
+                        <View style={styles.infoContainer}>
+                          <Text style={[styles.sessionTitle, { color: "black" }]}>Executive Seminar 2</Text>
+                          <Text style={[styles.sessionLocation, { color: "black" }]}>{session2}</Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Dinner */}
+                    <View style={[styles.sessionContainer, { backgroundColor: "#f3f4f6" }]}>
+                      <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: "#000000" }]}>5:30 pm</Text>
+                        <Text style={[styles.timeText, { color: "black" }]}>7:00 pm</Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={[styles.sessionTitle, { color: "black" }]}>Dinner</Text>
+                      </View>
+                    </View>
+
+                    {/* Explore NYC */}
+                    <View style={[styles.sessionContainer, { backgroundColor: "#E5E7EB" }]}>
+                      <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: "#000000" }]}>7:00 pm</Text>
+                        <Text style={[styles.timeText, { color: "black" }]}>10:00 pm</Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={[styles.sessionTitle, { color: "black" }]}>Explore NYC</Text>
+                      </View>
+                    </View>
+                  </>
+                );
+              }
+
+              // For Sunday and Monday, use the original logic
               const sessionFields = {
-                0: { session1: "day1_session1", session2: "day1_session2" }, // Saturday
                 1: { session1: "day2_session1", session2: "day2_session2" }, // Sunday
                 2: { session1: "day3_session1", session2: "day3_session2" }, // Monday
               };
 
               const fields =
                 sessionFields[selectedDayIndex as keyof typeof sessionFields];
-              const session1 = parentData?.[fields.session1 as keyof ICUser] as
-                | string
-                | undefined;
-              const session2 = parentData?.[fields.session2 as keyof ICUser] as
-                | string
-                | undefined;
+              const session1 = parentData?.[fields.session1 as keyof ICUser] as string | undefined;
+              const session2 = parentData?.[fields.session2 as keyof ICUser] as string | undefined;
 
               return (
                 <>
