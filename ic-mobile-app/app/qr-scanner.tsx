@@ -13,6 +13,7 @@ import { Stack } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { recordScanToSheet } from "@/utils/googleSheets";
+import { isAdminEmail } from "@/utils/adminEmails";
 
 const AUTH_EMAIL_KEY = '@auth_user_email';
 const SCAN_COOLDOWN_MS = 3000; // 3 seconds cooldown between scans
@@ -29,7 +30,7 @@ export default function QRScannerScreen() {
   const isProcessingRef = useRef(false);
   const lastScanTimeRef = useRef<number>(0);
   const lastScannedDataRef = useRef<string | null>(null);
-  const cooldownTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const cooldownTimerRef = useRef<number | null>(null);
 
   // Load email from AsyncStorage
   useEffect(() => {
@@ -47,6 +48,60 @@ export default function QRScannerScreen() {
     };
     loadEmail();
   }, [contextUserEmail]);
+
+  // Redirect non-admin users back to schedule
+  // Use a ref to prevent multiple redirects and track the last checked email
+  // Only redirect if we're sure the email is current (not stale from AsyncStorage)
+  const redirectCheckedRef = useRef<string | null>(null);
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  useEffect(() => {
+    // Clear any pending redirect timeout
+    if (redirectTimeoutRef.current) {
+      clearTimeout(redirectTimeoutRef.current);
+    }
+    
+    const checkAdminAccess = async () => {
+      try {
+        // Wait for email to be loaded from AsyncStorage
+        const email = await AsyncStorage.getItem(AUTH_EMAIL_KEY);
+        const currentEmail = email || contextUserEmail || userEmail;
+        
+        // Only check if email has changed
+        if (currentEmail && redirectCheckedRef.current !== currentEmail) {
+          const normalizedEmail = currentEmail.toLowerCase().trim();
+          
+          // Add a small delay to ensure email is current and not stale
+          redirectTimeoutRef.current = setTimeout(() => {
+            // Double-check the email is still the same before redirecting
+            if (redirectCheckedRef.current !== currentEmail) {
+              redirectCheckedRef.current = currentEmail;
+              
+              if (!isAdminEmail(currentEmail)) {
+                console.log("🚫 QR Scanner: Non-admin user detected, redirecting to schedule:", normalizedEmail);
+                router.replace("/schedule");
+              } else {
+                console.log("✅ QR Scanner: Admin user confirmed:", normalizedEmail);
+              }
+            }
+          }, 200); // Small delay to let AsyncStorage and context sync
+        }
+      } catch (error) {
+        console.error('Error checking admin access:', error);
+      }
+    };
+    
+    // Only check after email is loaded
+    if (userEmail || contextUserEmail) {
+      checkAdminAccess();
+    }
+    
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, [userEmail, contextUserEmail, router]);
 
   useEffect(() => {
     if (permission && !permission.granted && !permission.canAskAgain) {
@@ -104,14 +159,13 @@ export default function QRScannerScreen() {
       const scannedEmail = parsedData.email || 'N/A';
       const scannedUserId = parsedData.userId || 'N/A';
       
-      // Check if current user is businesstoday@gmail.com before recording
-      const currentUserEmail = userEmail?.toLowerCase();
-      if (currentUserEmail === 'businesstoday@gmail.com') {
-        // Record scan to Google Sheet
+      // Check if current user is admin before recording
+      if (isAdminEmail(userEmail)) {
+        // Record scan to Google Sheet with staffer email
         setRecording(true);
         let success = false;
         try {
-          success = await recordScanToSheet(scannedName);
+          success = await recordScanToSheet(scannedName, userEmail || "");
         } finally {
           setRecording(false);
         }
@@ -144,13 +198,12 @@ export default function QRScannerScreen() {
       // If it's not JSON, just show the raw data
       console.log("Scanned QR Code (raw):", data);
       
-      // Still try to record if user is businesstoday@gmail.com
-      const currentUserEmail = userEmail?.toLowerCase();
-      if (currentUserEmail === 'businesstoday@gmail.com') {
+      // Still try to record if user is admin
+      if (isAdminEmail(userEmail)) {
         setRecording(true);
         let success = false;
         try {
-          success = await recordScanToSheet(data); // Use raw data as name
+          success = await recordScanToSheet(data, userEmail || ""); // Use raw data as name, pass staffer email
         } finally {
           setRecording(false);
         }
@@ -217,12 +270,6 @@ export default function QRScannerScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>QR Code Scanner</Text>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.cameraContainer}>
@@ -279,14 +326,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#111827",
     marginBottom: 10,
-  },
-  backButton: {
-    paddingVertical: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: "#05688e",
-    fontWeight: "500",
   },
   cameraContainer: {
     flex: 1,

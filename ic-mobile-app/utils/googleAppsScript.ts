@@ -19,9 +19,10 @@
  *     const lastRow = sheet.getLastRow();
  *     const nextRow = lastRow + 1;
  *     
- *     // Write name in column A and time in column B
- *     sheet.getRange(nextRow, 1).setValue(data.name);
- *     sheet.getRange(nextRow, 2).setValue(data.time);
+ *     // Write to columns: A = Staffer, B = Name, C = Time
+ *     sheet.getRange(nextRow, 1).setValue(data.staffer || 'Unknown');
+ *     sheet.getRange(nextRow, 2).setValue(data.name || 'Unknown');
+ *     sheet.getRange(nextRow, 3).setValue(data.time || new Date().toLocaleString());
  *     
  *     return ContentService.createTextOutput(JSON.stringify({success: true}))
  *       .setMimeType(ContentService.MimeType.JSON);

@@ -11,16 +11,18 @@
  */
 
 interface ScanRecord {
-  name: string;
-  time: string;
+  staffer: string; // Email of admin who scanned the QR code
+  name: string;   // Name from scanned QR code
+  time: string;   // Timestamp of the scan
 }
 
 /**
  * Records a scan to Google Sheets via Google Apps Script Web App
  * @param name - Name from scanned QR code
+ * @param stafferEmail - Email of the admin staffer who is scanning
  * @returns true if successful, false otherwise
  */
-export async function recordScanToSheet(name: string): Promise<boolean> {
+export async function recordScanToSheet(name: string, stafferEmail: string): Promise<boolean> {
   try {
     const timestamp = new Date().toLocaleString("en-US", {
       timeZone: "America/New_York",
@@ -34,6 +36,7 @@ export async function recordScanToSheet(name: string): Promise<boolean> {
     });
 
     const record: ScanRecord = {
+      staffer: stafferEmail || "Unknown",
       name: name || "Unknown",
       time: timestamp,
     };

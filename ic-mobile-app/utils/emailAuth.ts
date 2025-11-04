@@ -1,6 +1,7 @@
 import { collection, query, where, getDocs } from 'firebase/firestore';
 // @ts-ignore - firebaseConfig is a .js file without types
 import { db } from '../config/firebaseConfig';
+import { isAdminEmail } from './adminEmails';
 
 export interface EmailAuthResult {
   success: boolean;
@@ -27,9 +28,9 @@ export async function signInWithEmail(email: string): Promise<EmailAuthResult> {
     
     console.log('🔍 Checking email in Firestore:', normalizedEmail);
 
-    // Special case: Allow businesstoday@gmail.com to bypass Firestore check
+    // Special case: Allow admin emails to bypass Firestore check
     // This is for QR scanner access
-    if (normalizedEmail === 'businesstoday@gmail.com') {
+    if (isAdminEmail(normalizedEmail)) {
       console.log('✅ Special admin email detected, allowing access');
       return {
         success: true,

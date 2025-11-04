@@ -5,6 +5,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
 import { signInWithEmail } from '@/utils/emailAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { isAdminEmail } from '@/utils/adminEmails';
 
 const AUTH_EMAIL_KEY = '@auth_user_email';
 
@@ -27,11 +28,22 @@ export default function LoginScreen() {
       const result = await signInWithEmail(email);
       
       if (result.success && result.email) {
-        // Save email to AsyncStorage (matching what AuthContext expects)
-        await AsyncStorage.setItem(AUTH_EMAIL_KEY, result.email);
+        // Clear any stale email first to prevent redirect loops
+        // Then save the new email to AsyncStorage
+        const normalizedEmail = result.email.toLowerCase().trim();
+        await AsyncStorage.removeItem(AUTH_EMAIL_KEY);
+        await AsyncStorage.setItem(AUTH_EMAIL_KEY, normalizedEmail);
         
-        // Navigate to schedule page after successful authentication
-        router.push('/schedule');
+        // Small delay to ensure AsyncStorage is updated before navigation
+        // This prevents race conditions with AuthContext loading stale data
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
+        // Navigate based on email - admin goes to scanner, others go to schedule
+        if (isAdminEmail(normalizedEmail)) {
+          router.replace('/qr-scanner');
+        } else {
+          router.replace('/schedule');
+        }
       } else {
         // Show inline error message
         setError(result.error || 'Please enter a different email address');

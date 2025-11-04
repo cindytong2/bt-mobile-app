@@ -15,6 +15,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import QRCode from "react-native-qrcode-svg";
+import { isAdminEmail } from "@/utils/adminEmails";
 
 const AUTH_EMAIL_KEY = "@auth_user_email";
 
@@ -37,6 +38,7 @@ export default function ScheduleScreen() {
   const router = useRouter();
   const days = ["Saturday", "Sunday", "Monday"];
   const [selectedDayIndex, setSelectedDayIndex] = useState(0); // 0 = Saturday, 1 = Sunday, 2 = Monday
+  const [selectedTab, setSelectedTab] = useState<"schedule" | "qr">("schedule"); // Track active tab
   const [users, setUsers] = useState<ICUser[]>([]);
   const [parentData, setParentData] = useState<ICUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,12 +96,43 @@ export default function ScheduleScreen() {
     }
   }, [authLoading, userEmail, router]);
 
-  // Redirect to QR scanner if email is businesstoday@gmail.com
+  // Redirect to QR scanner if email is admin
+  // Use a ref to prevent multiple redirects and track the last checked email
+  // Only redirect if we're sure the email is current (not stale from AsyncStorage)
+  const redirectCheckedRef = React.useRef<string | null>(null);
+  const redirectTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  
   useEffect(() => {
-    if (userEmail && userEmail.toLowerCase() === "businesstoday@gmail.com") {
-      console.log("📧 Schedule: Redirecting to QR scanner for:", userEmail);
-      router.replace("/qr-scanner");
+    // Clear any pending redirect timeout
+    if (redirectTimeoutRef.current) {
+      clearTimeout(redirectTimeoutRef.current);
     }
+    
+    if (userEmail && redirectCheckedRef.current !== userEmail) {
+      const normalizedEmail = userEmail.toLowerCase().trim();
+      
+      // Add a small delay to ensure AsyncStorage has been updated and context is synced
+      // This prevents redirects based on stale data
+      redirectTimeoutRef.current = setTimeout(() => {
+        // Double-check the email is still the same before redirecting
+        if (redirectCheckedRef.current !== userEmail) {
+          redirectCheckedRef.current = userEmail;
+          
+          if (isAdminEmail(userEmail)) {
+            console.log("📧 Schedule: Redirecting to QR scanner for:", userEmail);
+            router.replace("/qr-scanner");
+          } else {
+            console.log("📧 Schedule: User is NOT admin, staying on schedule:", normalizedEmail);
+          }
+        }
+      }, 200); // Small delay to let AsyncStorage and context sync
+    }
+    
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
   }, [userEmail, router]);
 
   // Fetch ic-users collection from Firestore
@@ -183,141 +216,169 @@ export default function ScheduleScreen() {
         {parentData?.name ? `${parentData.name}'s Schedule` : "Schedule"}
       </Text>
 
-      {/* QR Code Card */}
-      {parentData && qrCodeData && (
-        <View style={styles.qrCodeCard}>
-          <Text style={styles.qrCodeTitle}>Your QR Code</Text>
-          <View style={styles.qrCodeContainer}>
-            <QRCode
-              value={qrCodeData}
-              size={200}
-              color="#111827"
-              backgroundColor="#FFFFFF"
-              logo={undefined}
-              logoSize={0}
-              logoBackgroundColor="transparent"
-              logoMargin={0}
-              logoBorderRadius={0}
-            />
-          </View>
-          <Text style={styles.qrCodeSubtitle}>
-            Scan to verify your identity
-          </Text>
-        </View>
-      )}
-
       {/* Top tabs */}
       <View style={styles.topTabs}>
-        <TouchableOpacity style={[styles.tab, styles.activeTab]}>
-          <Text style={[styles.tabText, styles.activeTabText]}>Schedule</Text>
-        </TouchableOpacity>
-        {/* <TouchableOpacity style={styles.tab}>
-          <Text style={styles.tabText}>Map</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tab}>
-          <Text style={styles.tabText}>Emergency</Text>
-        </TouchableOpacity> */}
-      </View>
-
-      {/* Day selector */}
-      <View style={styles.daysContainer}>
-        {days.map((day, idx) => (
-          <TouchableOpacity
-            key={idx}
-            onPress={() => setSelectedDayIndex(idx)}
-            activeOpacity={0.7}
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === "schedule" && styles.activeTab]}
+          onPress={() => setSelectedTab("schedule")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              selectedTab === "schedule" && styles.activeTabText,
+            ]}
           >
-            <Text
-              style={[
-                styles.dayText,
-                idx === selectedDayIndex && styles.activeDayText,
-              ]}
-            >
-              {day}
-            </Text>
-          </TouchableOpacity>
-        ))}
+            Schedule
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === "qr" && styles.activeTab]}
+          onPress={() => setSelectedTab("qr")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              selectedTab === "qr" && styles.activeTabText,
+            ]}
+          >
+            Your QR Code
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Schedule sessions */}
-      <ScrollView style={{ marginTop: 10 }}>
-        {/* Render sessions based on selected day */}
-        {(() => {
-          // Map day index to session field names
-          const sessionFields = {
-            0: { session1: "day1_session1", session2: "day1_session2" }, // Saturday
-            1: { session1: "day2_session1", session2: "day2_session2" }, // Sunday
-            2: { session1: "day3_session1", session2: "day3_session2" }, // Monday
-          };
+      {/* Show QR Code Card when QR tab is selected */}
+      {selectedTab === "qr" && parentData && qrCodeData && (
+        <ScrollView style={{ marginTop: 10 }}>
+          <View style={styles.qrCodeCard}>
+            <Text style={styles.qrCodeTitle}>Your QR Code</Text>
+            <View style={styles.qrCodeContainer}>
+              <QRCode
+                value={qrCodeData}
+                size={200}
+                color="#111827"
+                backgroundColor="#FFFFFF"
+                logo={undefined}
+                logoSize={0}
+                logoBackgroundColor="transparent"
+                logoMargin={0}
+                logoBorderRadius={0}
+              />
+            </View>
+            <Text style={styles.qrCodeSubtitle}>
+              Scan to verify your identity
+            </Text>
+          </View>
+        </ScrollView>
+      )}
 
-          const fields =
-            sessionFields[selectedDayIndex as keyof typeof sessionFields];
-          const session1 = parentData?.[fields.session1 as keyof ICUser] as
-            | string
-            | undefined;
-          const session2 = parentData?.[fields.session2 as keyof ICUser] as
-            | string
-            | undefined;
-
-          return (
-            <>
-              {/* Session 1 */}
-              {session1 && (
-                <View
+      {/* Show Schedule content when Schedule tab is selected */}
+      {selectedTab === "schedule" && (
+        <>
+          {/* Day selector */}
+          <View style={styles.daysContainer}>
+            {days.map((day, idx) => (
+              <TouchableOpacity
+                key={idx}
+                onPress={() => setSelectedDayIndex(idx)}
+                activeOpacity={0.7}
+              >
+                <Text
                   style={[
-                    styles.sessionContainer,
-                    { backgroundColor: "#05688e" },
+                    styles.dayText,
+                    idx === selectedDayIndex && styles.activeDayText,
                   ]}
                 >
-                  <View style={styles.timeContainer}>
-                    <Text style={[styles.timeText, { color: "#ffffff" }]}>
-                      1:30 pm
-                    </Text>
-                    <Text style={[styles.timeText, { color: "white" }]}>
-                      2:30 pm
-                    </Text>
-                  </View>
-                  <View style={styles.infoContainer}>
-                    <Text style={[styles.sessionTitle, { color: "white" }]}>
-                      Session 1
-                    </Text>
-                    <Text style={[styles.sessionLocation, { color: "white" }]}>
-                      {session1}
-                    </Text>
-                  </View>
-                </View>
-              )}
+                  {day}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-              {/* Session 2 */}
-              {session2 && (
-                <View
-                  style={[
-                    styles.sessionContainer,
-                    { backgroundColor: "#f3f4f6" },
-                  ]}
-                >
-                  <View style={styles.timeContainer}>
-                    <Text style={[styles.timeText, { color: "#000000" }]}>
-                      2:30 pm
-                    </Text>
-                    <Text style={[styles.timeText, { color: "black" }]}>
-                      3:30 pm
-                    </Text>
-                  </View>
-                  <View style={styles.infoContainer}>
-                    <Text style={[styles.sessionTitle, { color: "black" }]}>
-                      Session 2
-                    </Text>
-                    <Text style={[styles.sessionLocation, { color: "black" }]}>
-                      {session2}
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </>
-          );
-        })()}
-      </ScrollView>
+          {/* Schedule sessions */}
+          <ScrollView style={{ marginTop: 10 }}>
+            {/* Render sessions based on selected day */}
+            {(() => {
+              // Map day index to session field names
+              const sessionFields = {
+                0: { session1: "day1_session1", session2: "day1_session2" }, // Saturday
+                1: { session1: "day2_session1", session2: "day2_session2" }, // Sunday
+                2: { session1: "day3_session1", session2: "day3_session2" }, // Monday
+              };
+
+              const fields =
+                sessionFields[selectedDayIndex as keyof typeof sessionFields];
+              const session1 = parentData?.[fields.session1 as keyof ICUser] as
+                | string
+                | undefined;
+              const session2 = parentData?.[fields.session2 as keyof ICUser] as
+                | string
+                | undefined;
+
+              return (
+                <>
+                  {/* Session 1 */}
+                  {session1 && (
+                    <View
+                      style={[
+                        styles.sessionContainer,
+                        { backgroundColor: "#05688e" },
+                      ]}
+                    >
+                      <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: "#ffffff" }]}>
+                          1:30 pm
+                        </Text>
+                        <Text style={[styles.timeText, { color: "white" }]}>
+                          2:30 pm
+                        </Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={[styles.sessionTitle, { color: "white" }]}>
+                          Session 1
+                        </Text>
+                        <Text
+                          style={[styles.sessionLocation, { color: "white" }]}
+                        >
+                          {session1}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Session 2 */}
+                  {session2 && (
+                    <View
+                      style={[
+                        styles.sessionContainer,
+                        { backgroundColor: "#f3f4f6" },
+                      ]}
+                    >
+                      <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: "#000000" }]}>
+                          2:30 pm
+                        </Text>
+                        <Text style={[styles.timeText, { color: "black" }]}>
+                          3:30 pm
+                        </Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={[styles.sessionTitle, { color: "black" }]}>
+                          Session 2
+                        </Text>
+                        <Text
+                          style={[styles.sessionLocation, { color: "black" }]}
+                        >
+                          {session2}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </>
+              );
+            })()}
+          </ScrollView>
+        </>
+      )}
     </View>
   );
 }

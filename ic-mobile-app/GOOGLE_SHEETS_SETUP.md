@@ -34,9 +34,10 @@ function doPost(e) {
     const lastRow = sheet.getLastRow();
     const nextRow = lastRow + 1;
     
-    // Write name in column A and time in column B
-    sheet.getRange(nextRow, 1).setValue(data.name || 'Unknown');
-    sheet.getRange(nextRow, 2).setValue(data.time || new Date().toLocaleString());
+    // Write to columns: A = Staffer, B = Name, C = Time
+    sheet.getRange(nextRow, 1).setValue(data.staffer || 'Unknown');
+    sheet.getRange(nextRow, 2).setValue(data.name || 'Unknown');
+    sheet.getRange(nextRow, 3).setValue(data.time || new Date().toLocaleString());
     
     // Return JSON response with CORS headers
     return ContentService.createTextOutput(JSON.stringify({success: true}))
@@ -106,7 +107,7 @@ npm start
 
 ## Testing
 
-1. Log in with `businesstoday@gmail.com`
+1. Log in with `admin@businesstoday.org`
 2. Navigate to the QR scanner
 3. Scan a QR code
 4. Check the Google Sheet to verify the entry was recorded
